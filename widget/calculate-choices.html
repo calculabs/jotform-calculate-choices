@@ -5,10 +5,7 @@
     <script type="text/javascript">
         // Custom logging function that uses JotForm's messaging
         function log(type, ...args) {
-            // Regular console logging
             console[type](...args);
-            
-            // Only send logs via JotForm if the widget API is ready
             if (window.JFCustomWidget && JFCustomWidget.sendData) {
                 try {
                     JFCustomWidget.sendData({
@@ -22,18 +19,14 @@
                         })
                     });
                 } catch (e) {
-                    // Fallback to regular console if messaging fails
                     console.error('Failed to send log via JotForm:', e);
                 }
             }
         }
-
-        // Log that script is starting
-        log('info', 'Widget script starting to load...');
     </script>
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             margin: 0;
             padding: 10px;
         }
@@ -42,7 +35,6 @@
             padding: 15px;
             border-radius: 4px;
             background: #f9f9f9;
-            min-height: 80px;
         }
         .count {
             font-size: 24px;
@@ -56,13 +48,6 @@
         .error {
             color: #e74c3c;
             font-size: 12px;
-            margin-top: 5px;
-        }
-        .debug {
-            margin-top: 10px;
-            font-size: 12px;
-            color: #666;
-            white-space: pre-wrap;
         }
     </style>
 </head>
@@ -71,78 +56,31 @@
         <div class="label">Archetype Counter</div>
         <div class="count" id="choiceCount">0</div>
         <div class="error" id="errorMsg"></div>
-        <div class="debug" id="debugInfo"></div>
     </div>
 
     <script type="text/javascript">
-        log('info', 'Main widget script starting...');
-
-        // Show error message
-        function showError(msg) {
-            log('error', 'Widget Error:', msg);
-            document.getElementById('errorMsg').textContent = msg;
-        }
-
-        // Show debug info
-        function showDebug(info) {
-            log('info', 'Debug Info:', info);
-            const debugEl = document.getElementById('debugInfo');
-            debugEl.textContent = typeof info === 'object' ? JSON.stringify(info, null, 2) : info;
-        }
-
         // Initialize widget when DOM is ready
         document.addEventListener("DOMContentLoaded", function() {
-            log('info', 'DOM Content Loaded, initializing widget...');
-            
             // Subscribe to ready event
-            log('info', 'Subscribing to JFCustomWidget ready event...');
             JFCustomWidget.subscribe("ready", function(data) {
-                log('info', 'JFCustomWidget ready event received:', data);
-                
                 try {
-                    let targetArchetype;
-                    
-                    // First try to get setting from data.settings if it exists
-                    if (data.settings) {
-                        try {
-                            const settingsStr = data.settings;
-                            log('info', 'Raw settings string:', settingsStr);
-                            
-                            const decodedSettings = decodeURIComponent(settingsStr);
-                            log('info', 'Decoded settings:', decodedSettings);
-                            
-                            const settings = JSON.parse(decodedSettings);
-                            log('info', 'Parsed settings:', settings);
-                            
-                            const archetypeSetting = settings.find(s => s.name === 'archetype');
-                            targetArchetype = archetypeSetting ? archetypeSetting.value : null;
-                            log('info', 'Retrieved target archetype from settings:', targetArchetype);
-                        } catch (settingsErr) {
-                            log('warn', 'Failed to parse settings from data:', settingsErr);
-                        }
-                    }
-                    
-                    // Fallback to getWidgetSetting if we couldn't get it from data.settings
-                    if (!targetArchetype) {
-                        targetArchetype = JFCustomWidget.getWidgetSetting('archetype');
-                        log('info', 'Retrieved target archetype from getWidgetSetting:', targetArchetype);
-                    }
-                    
-                    showDebug('Target archetype: ' + targetArchetype);
+                    // Get archetype from settings
+                    const settingsStr = data.settings;
+                    const settings = settingsStr ? JSON.parse(decodeURIComponent(settingsStr)) : [];
+                    const targetArchetype = settings.find(s => s.name === 'archetype')?.value || 
+                                         JFCustomWidget.getWidgetSetting('archetype');
                     
                     if (!targetArchetype) {
-                        showError('Please set the archetype parameter in widget settings (Atlas, Seer, Envoy, or Nexus)');
+                        document.getElementById('errorMsg').textContent = 
+                            'Please set the archetype parameter in widget settings (Atlas, Seer, Envoy, or Nexus)';
                         return;
                     }
                     
                     // Update the label
                     document.querySelector('.label').textContent = 'Total ' + targetArchetype + ' responses:';
-                    log('info', 'Updated label for archetype:', targetArchetype);
 
-                    // Keep track of field values
+                    // Keep track of field values and set up archetype mapping
                     let fieldValues = {};
-
-                    // Fixed mapping of option index to archetype
                     const archetypeMap = {
                         '0': 'Atlas',
                         '1': 'Seer',
@@ -150,103 +88,48 @@
                         '3': 'Nexus'
                     };
 
-                    // Set up listeners for questions
-                    const questionIds = [7, 9];
-                    log('info', 'Setting up listeners for questions:', questionIds);
-
-                    // Function to handle radio change
-                    function handleRadioChange(questionId, optionIndex) {
-                        const key = `q${questionId}`;
-                        log('info', 'Radio changed for question:', key, 'Option:', optionIndex);
-                        // Get archetype from the fixed mapping
-                        fieldValues[key] = archetypeMap[optionIndex];
-                        log('info', 'Mapped to archetype:', fieldValues[key]);
-                        updateCount();
-                    }
-
-                    // Set up listeners for each question
-                    questionIds.forEach(id => {
-                        const qName = `q${id}`;
-                        log('info', 'Setting up listener for question:', qName);
-                        
-                        try {
-                            // Listen to individual radio options
-                            ['0', '1', '2', '3'].forEach(option => {
-                                const inputId = `input_${id}_${option}`;
-                                try {
-                                    JFCustomWidget.listenFromField(inputId, 'change', value => {
-                                        log('info', 'Radio option changed:', inputId, 'Value:', value);
-                                        if (value && value !== 'false') {
-                                            handleRadioChange(id, option);
-                                        }
-                                    });
-                                    log('info', 'Successfully set up listener for radio:', inputId);
-                                } catch (err) {
-                                    log('warn', 'Failed to set up listener for radio:', inputId, err);
-                                }
-                            });
-
-                            // Get initial value - we might need to handle this differently
-                            JFCustomWidget.getFieldsValueById([qName], data => {
-                                log('info', 'Got initial value for question:', qName, 'Data:', data);
-                                // We'll skip initial value handling for now since it's trickier
-                                // to determine which option was selected initially
-                            });
-                        } catch (err) {
-                            log('warn', 'Failed to set up listener for:', qName, err);
-                        }
-                    });
-
                     // Function to update count
                     function updateCount() {
                         log('info', 'Updating count, current values:', fieldValues);
-                        let count = 0;
+                        const count = Object.values(fieldValues)
+                            .filter(value => value === targetArchetype)
+                            .length;
                         
-                        Object.entries(fieldValues).forEach(([key, value]) => {
-                            log('info', 'Checking field:', key, 'Value:', value);
-                            
-                            // Match against the targetArchetype from widget settings
-                            if (value === targetArchetype) {
-                                count++;
-                                log('info', `Found ${targetArchetype} match in field:`, key);
-                            }
-                        });
-                        
-                        log('info', 'Final count:', count);
+                        log('info', `Count updated to ${count} for target archetype: ${targetArchetype}`);
                         document.getElementById('choiceCount').textContent = count;
-                        document.getElementById('errorMsg').textContent = '';
-                        
-                        JFCustomWidget.sendData({
-                            valid: true,
-                            value: count.toString()
-                        });
+                        JFCustomWidget.sendData({ valid: true, value: count.toString() });
                     }
 
+                    // Set up listeners for questions
+                    [7, 9].forEach(id => {
+                        ['0', '1', '2', '3'].forEach(option => {
+                            const inputId = `input_${id}_${option}`;
+                            JFCustomWidget.listenFromField(inputId, 'change', value => {
+                                if (value && value !== 'false') {
+                                    log('info', `Radio ${inputId} selected, mapping option ${option} to ${archetypeMap[option]}`);
+                                    fieldValues[`q${id}`] = archetypeMap[option];
+                                    updateCount();
+                                }
+                            });
+                        });
+                    });
+
+                    // Set up frame height
+                    JFCustomWidget.requestFrameResize({ height: 100 });
+
                     // Handle form submission
-                    log('info', 'Subscribing to submit event...');
                     JFCustomWidget.subscribe("submit", function() {
-                        log('info', 'Submit event received');
                         JFCustomWidget.sendSubmit({
                             valid: true,
                             value: document.getElementById('choiceCount').textContent
                         });
                     });
 
-                    // Request proper height for widget
-                    log('info', 'Requesting frame resize...');
-                    JFCustomWidget.requestFrameResize({
-                        height: 150
-                    });
-
                 } catch (err) {
-                    log('error', 'Error in ready handler:', err);
-                    showError('Error initializing widget: ' + err.message);
+                    document.getElementById('errorMsg').textContent = 'Error initializing widget: ' + err.message;
                 }
             });
         });
-
-        // Log that script has finished loading
-        log('info', 'Widget script finished loading.');
     </script>
 </body>
 </html> 
