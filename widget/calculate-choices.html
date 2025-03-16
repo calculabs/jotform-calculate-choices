@@ -175,17 +175,16 @@
                                     JFCustomWidget.listenFromField(inputId, 'change', value => {
                                         log('info', 'Radio option changed:', inputId, 'Value:', value);
                                         if (value && value !== 'false') {
-                                            // If we get a long string, it's the display text
-                                            // Try to get the data-calcvalue from the radio input
-                                            JFCustomWidget.getFieldsValueById([inputId], data => {
-                                                if (data?.data?.[0]?.calcValue) {
-                                                    log('info', 'Found calcValue:', data.data[0].calcValue);
-                                                    handleRadioChange(id, data.data[0].calcValue);
-                                                } else {
-                                                    log('warn', 'No calcValue found for:', inputId);
-                                                    handleRadioChange(id, value);
-                                                }
-                                            });
+                                            // Get the data-calcvalue directly from the radio input
+                                            const radioInput = document.getElementById(inputId);
+                                            if (radioInput && radioInput.getAttribute('data-calcvalue')) {
+                                                const calcValue = radioInput.getAttribute('data-calcvalue');
+                                                log('info', 'Found data-calcvalue:', calcValue);
+                                                handleRadioChange(id, calcValue);
+                                            } else {
+                                                log('warn', 'No data-calcvalue found for:', inputId);
+                                                handleRadioChange(id, value);
+                                            }
                                         }
                                     });
                                     log('info', 'Successfully set up listener for radio:', inputId);
