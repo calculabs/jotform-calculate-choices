@@ -29,6 +29,13 @@
             font-size: 12px;
             margin-top: 5px;
         }
+        .debug {
+            font-family: monospace;
+            font-size: 10px;
+            color: #666;
+            margin-top: 10px;
+            word-break: break-all;
+        }
     </style>
 </head>
 <body>
@@ -36,6 +43,7 @@
         <div class="label">Archetype Counter</div>
         <div class="count" id="choiceCount">0</div>
         <div class="error" id="errorMsg"></div>
+        <div class="debug" id="debugInfo"></div>
     </div>
 
     <script type="text/javascript">
@@ -45,17 +53,32 @@
             console.error(msg);
         }
 
+        // Show debug info
+        function showDebug(msg) {
+            document.getElementById('debugInfo').textContent = msg;
+            console.log(msg);
+        }
+
         // Initialize widget
         function initWidget() {
             try {
-                JFCustomWidget.subscribe("ready", function() {
+                JFCustomWidget.subscribe("ready", function(data) {
                     try {
-                        // Get which archetype this widget instance should calculate
-                        var targetArchetype = JFCustomWidget.getWidgetSetting('targetArchetype');
+                        // Debug all available settings
+                        var allSettings = JFCustomWidget.getWidgetSettings();
+                        console.log('All widget settings:', allSettings);
+                        showDebug('Settings: ' + JSON.stringify(allSettings));
+
+                        // Try different ways to get the archetype
+                        var targetArchetype = allSettings.targetArchetype || 
+                                           allSettings.TargetArchetype || 
+                                           allSettings.archetype || 
+                                           allSettings.Archetype;
+                        
                         console.log('Target Archetype:', targetArchetype);
                         
                         if (!targetArchetype) {
-                            showError('No archetype selected. Please set the targetArchetype parameter.');
+                            showError('No archetype found in settings. Available settings shown below.');
                             return;
                         }
                         
