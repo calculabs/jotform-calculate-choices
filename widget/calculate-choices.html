@@ -63,12 +63,9 @@
             // Subscribe to ready event
             JFCustomWidget.subscribe("ready", function(data) {
                 try {
-                    // Get widget settings
-                    const settings = JFCustomWidget.getWidgetSettings();
-                    showDebug('Widget settings: ' + JSON.stringify(settings, null, 2));
-
-                    // Get the target archetype
-                    const targetArchetype = settings.archetype;
+                    // Get the target archetype parameter
+                    const targetArchetype = JFCustomWidget.getWidgetSetting('archetype');
+                    showDebug('Target archetype: ' + targetArchetype);
                     
                     if (!targetArchetype) {
                         showError('Please set the archetype parameter in widget settings (Atlas, Seer, Envoy, or Nexus)');
