@@ -100,9 +100,15 @@
                 log('info', 'JFCustomWidget ready event received:', data);
                 
                 try {
-                    // Get the target archetype parameter
-                    log('info', 'Getting widget setting for archetype...');
-                    const targetArchetype = JFCustomWidget.getWidgetSetting('archetype');
+                    // Parse settings from URL-encoded JSON string
+                    const settingsStr = decodeURIComponent(data.settings || '[]');
+                    const settings = JSON.parse(settingsStr);
+                    log('info', 'Decoded settings:', settings);
+
+                    // Find the archetype setting
+                    const archetypeSetting = settings.find(s => s.name === 'archetype');
+                    const targetArchetype = archetypeSetting ? archetypeSetting.value : null;
+                    
                     log('info', 'Retrieved target archetype:', targetArchetype);
                     showDebug('Target archetype: ' + targetArchetype);
                     
@@ -145,9 +151,13 @@
                                 Object.keys(formData.answers).forEach(function(qid) {
                                     var answer = formData.answers[qid];
                                     log('info', 'Checking answer:', qid, answer);
-                                    if (answer && answer.answer === targetArchetype) {
-                                        count++;
-                                        log('info', 'Found matching answer, count:', count);
+                                    // Check both answer and calculatedValue
+                                    if (answer) {
+                                        const answerValue = answer.answer || answer.calculatedValue;
+                                        if (answerValue === targetArchetype) {
+                                            count++;
+                                            log('info', 'Found matching answer, count:', count);
+                                        }
                                     }
                                 });
                             }
@@ -173,6 +183,25 @@
                     log('info', 'Requesting frame resize...');
                     JFCustomWidget.requestFrameResize({
                         height: 150
+                    });
+
+                    // Request initial form data
+                    log('info', 'Requesting initial form data...');
+                    JFCustomWidget.getFormData(function(data) {
+                        log('info', 'Initial form data received:', data);
+                        if (data && data.answers) {
+                            var count = 0;
+                            Object.keys(data.answers).forEach(function(qid) {
+                                var answer = data.answers[qid];
+                                if (answer) {
+                                    const answerValue = answer.answer || answer.calculatedValue;
+                                    if (answerValue === targetArchetype) {
+                                        count++;
+                                    }
+                                }
+                            });
+                            updateCount(count);
+                        }
                     });
 
                 } catch (err) {
