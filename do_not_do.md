@@ -54,6 +54,18 @@
     - Set up direct listeners using `listenFromField` with known IDs
     - Always try both raw ID and 'input_' prefixed versions
 
+11. **Don't assume simple field IDs for radio inputs**
+    - Radio inputs have complex ID structures (e.g., `input_7_0`, `input_7_1`)
+    - Questions have separate names (e.g., `q7_typeA`)
+    - Need to listen to both question name and individual radio inputs
+    - Radio change events return boolean values, not the selected option value
+
+12. **Don't ignore the data-calcvalue attribute**
+    - Radio inputs store their actual value in `data-calcvalue`
+    - The `value` attribute contains the display text
+    - When a radio is selected, you get `true` as the value
+    - Need to correlate the selection with the `data-calcvalue`
+
 These mistakes often stemmed from:
 - Assuming standard JavaScript methods would work in JotForm's widget environment
 - Not fully understanding JotForm's widget API structure
@@ -92,3 +104,13 @@ Best Practices:
    - Update counts immediately when values change
    - Process all fields before updating final count
    - Log all value changes and processing steps
+10. Handle radio inputs properly:
+   - Listen to both question name and individual radio inputs
+   - Use `data-calcvalue` for actual option values
+   - Handle boolean change events correctly
+   - Track both question ID and name
+11. Structure question data clearly:
+   - Define question IDs, names, and options explicitly
+   - Use consistent naming conventions
+   - Handle initial values and changes separately
+   - Log all radio selection events
