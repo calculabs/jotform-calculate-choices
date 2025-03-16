@@ -57,12 +57,14 @@
                         
                         // Check if it's a single choice question and has an answer
                         if (question.type === 'control_radio' && question.answer) {
-                            // Get the calculation value for the selected answer
-                            var selectedValue = question.calculationValue || question.answer;
-                            
-                            // Check if the selected value matches our target archetype
-                            if (selectedValue === archetypeValues[targetChoice]) {
-                                count++;
+                            // Get the calculation value from the selected radio input
+                            var inputs = question.options || [];
+                            for (var i = 0; i < inputs.length; i++) {
+                                var input = inputs[i];
+                                if (input.value === question.answer && input.calculationValue === archetypeValues[targetChoice]) {
+                                    count++;
+                                    break;
+                                }
                             }
                         }
                     }
