@@ -69,16 +69,13 @@
                         console.log('All widget settings:', allSettings);
                         showDebug('Settings: ' + JSON.stringify(allSettings));
 
-                        // Try different ways to get the archetype
-                        var targetArchetype = allSettings.targetArchetype || 
-                                           allSettings.TargetArchetype || 
-                                           allSettings.archetype || 
-                                           allSettings.Archetype;
+                        // Get the target choice using the correct parameter name
+                        var targetArchetype = JFCustomWidget.getWidgetSetting('targetChoice');
                         
                         console.log('Target Archetype:', targetArchetype);
                         
                         if (!targetArchetype) {
-                            showError('No archetype found in settings. Available settings shown below.');
+                            showError('No archetype selected. Please set the targetChoice parameter.');
                             return;
                         }
                         
