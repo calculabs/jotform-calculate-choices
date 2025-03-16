@@ -168,59 +168,49 @@
                         });
                     }
 
-                    // Subscribe to form data events
-                    log('info', 'Setting up form data subscription...');
-                    JFCustomWidget.subscribe("formData", function(formData) {
-                        log('info', 'Received formData event:', formData);
-                        
-                        if (!formData || !formData.answers) {
-                            log('warn', 'No answers in form data');
-                            return;
+                    // Set up listeners for specific question IDs
+                    const questionIds = ['cid_7', 'cid_9'];
+                    log('info', 'Setting up listeners for questions:', questionIds);
+
+                    // Get initial values for our fields
+                    JFCustomWidget.getFieldsValueById(questionIds, function(data) {
+                        log('info', 'Got initial field values:', data);
+                        if (data) {
+                            Object.entries(data).forEach(([id, value]) => {
+                                log('info', 'Initial value for field:', id, 'Value:', value);
+                                fieldValues[id] = value;
+                            });
+                            updateCount();
                         }
-                        
-                        // Process each answer
-                        Object.entries(formData.answers).forEach(([qid, answer]) => {
-                            log('info', 'Processing answer:', qid, answer);
-                            
-                            // Check if this is a radio/select field
-                            if (answer && (answer.type === 'control_radio' || answer.type === 'control_dropdown')) {
-                                log('info', 'Found radio/dropdown field:', qid);
-                                
-                                // Set up listener for this field
-                                const fieldIds = [
-                                    qid,
-                                    qid.replace('input_', ''),
-                                    'input_' + qid.replace('input_', '')
-                                ];
-                                
-                                fieldIds.forEach(id => {
-                                    try {
-                                        log('info', 'Setting up listener for:', id);
-                                        JFCustomWidget.listenFromField(id, 'change', function(value) {
-                                            log('info', 'Field changed:', id, 'Value:', value);
-                                            fieldValues[id] = value;
-                                            updateCount();
-                                        });
-                                    } catch (err) {
-                                        log('warn', 'Failed to set up listener for:', id, err);
-                                    }
-                                });
-                                
-                                // Store initial value if available
-                                if (answer.answer) {
-                                    log('info', 'Setting initial value for:', qid, answer.answer);
-                                    fieldValues[qid] = answer.answer;
-                                }
-                            }
-                        });
-                        
-                        // Update count after processing all fields
-                        updateCount();
                     });
 
-                    // Request initial form data
-                    log('info', 'Requesting initial form data...');
-                    JFCustomWidget.subscribe("formData", null);
+                    // Set up change listeners for each field
+                    questionIds.forEach(qid => {
+                        log('info', 'Setting up listener for question:', qid);
+                        try {
+                            JFCustomWidget.listenFromField(qid, 'change', function(value) {
+                                log('info', 'Field changed:', qid, 'New value:', value);
+                                fieldValues[qid] = value;
+                                updateCount();
+                            });
+                            log('info', 'Successfully set up listener for:', qid);
+                        } catch (err) {
+                            log('warn', 'Failed to set up listener for:', qid, err);
+                        }
+
+                        // Also try with input_ prefix
+                        const inputId = 'input_' + qid;
+                        try {
+                            JFCustomWidget.listenFromField(inputId, 'change', function(value) {
+                                log('info', 'Field changed:', inputId, 'New value:', value);
+                                fieldValues[qid] = value;
+                                updateCount();
+                            });
+                            log('info', 'Successfully set up listener for:', inputId);
+                        } catch (err) {
+                            log('warn', 'Failed to set up listener for:', inputId, err);
+                        }
+                    });
 
                     // Handle form submission
                     log('info', 'Subscribing to submit event...');
