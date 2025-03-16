@@ -203,15 +203,11 @@
                         
                         Object.entries(fieldValues).forEach(([key, value]) => {
                             log('info', 'Checking field:', key, 'Value:', value);
-                            // Check for Atlas-specific text patterns
-                            const isAtlasText = value && typeof value === 'string' && 
-                                              (value.includes('step-by-step') || 
-                                               value.includes('rock-solid') ||
-                                               value === targetArchetype);
                             
-                            if (isAtlasText) {
+                            // Match against the targetArchetype from widget settings
+                            if (value === targetArchetype) {
                                 count++;
-                                log('info', 'Found match in field:', key);
+                                log('info', `Found ${targetArchetype} match in field:`, key);
                             }
                         });
                         
