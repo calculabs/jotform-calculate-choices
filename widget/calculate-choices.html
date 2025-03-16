@@ -27,25 +27,25 @@
 </head>
 <body>
     <div class="result-container">
-        <div class="label">Total count for choice:</div>
+        <div class="label">Total count for:</div>
         <div class="count" id="choiceCount">0</div>
     </div>
 
     <script type="text/javascript">
         JFCustomWidget.subscribe("ready", function() {
-            // Get which choice (A,B,C,D) this widget instance should calculate
+            // Get which archetype this widget instance should calculate
             var targetChoice = JFCustomWidget.getWidgetSetting('targetChoice');
-            var choiceValues = {
-                'A': '1',
-                'B': '2',
-                'C': '3',
-                'D': '4'
+            var archetypeValues = {
+                'A': 'Atlas',
+                'B': 'Seer',
+                'C': 'Envoy',
+                'D': 'Nexus'
             };
             
-            // Update the label to show which choice we're counting
-            document.querySelector('.label').textContent = 'Total count for choice ' + targetChoice + ' (value: ' + choiceValues[targetChoice] + ')';
+            // Update the label to show which archetype we're counting
+            document.querySelector('.label').textContent = 'Total ' + archetypeValues[targetChoice] + ' responses:';
 
-            // Function to calculate total for the specified choice
+            // Function to calculate total for the specified archetype
             function calculateChoiceTotal() {
                 JFCustomWidget.getFormData(function(data) {
                     var questions = data.questions;
@@ -57,11 +57,11 @@
                         
                         // Check if it's a single choice question and has an answer
                         if (question.type === 'control_radio' && question.answer) {
-                            // Get the selected value
-                            var selectedValue = question.answer;
+                            // Get the calculation value for the selected answer
+                            var selectedValue = question.calculationValue || question.answer;
                             
-                            // Check if the selected value matches our target choice value
-                            if (selectedValue === choiceValues[targetChoice]) {
+                            // Check if the selected value matches our target archetype
+                            if (selectedValue === archetypeValues[targetChoice]) {
                                 count++;
                             }
                         }
