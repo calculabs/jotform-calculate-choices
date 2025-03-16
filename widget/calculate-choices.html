@@ -141,6 +141,8 @@
 
                     // Keep track of field values
                     let fieldValues = {};
+                    // Store option mappings
+                    let optionMappings = {};
 
                     // Set up listeners for questions
                     const questionIds = [7, 9];
@@ -150,8 +152,15 @@
                     function handleRadioChange(questionId, value) {
                         const key = `q${questionId}`;
                         log('info', 'Radio changed for question:', key, 'Value:', value);
-                        // Store the actual value without any transformations
-                        fieldValues[key] = value;
+                        // Look up the calcValue from our stored mappings
+                        const calcValue = optionMappings[key]?.[value];
+                        if (calcValue) {
+                            log('info', 'Found stored calcValue:', calcValue);
+                            fieldValues[key] = calcValue;
+                        } else {
+                            log('warn', 'No stored calcValue found for:', value);
+                            fieldValues[key] = value;
+                        }
                         updateCount();
                     }
 
@@ -161,6 +170,21 @@
                         log('info', 'Setting up listener for question:', qName);
                         
                         try {
+                            // First get all options for this question to build our mapping
+                            JFCustomWidget.getFieldsValueByName([qName], data => {
+                                log('info', 'Got question data for mapping:', data);
+                                if (data?.data?.[0]?.options) {
+                                    // Create mapping of display text to calcValue
+                                    optionMappings[qName] = {};
+                                    data.data[0].options.forEach(opt => {
+                                        if (opt.text && opt.calcValue) {
+                                            optionMappings[qName][opt.text] = opt.calcValue;
+                                            log('info', `Stored mapping for ${qName}:`, opt.text, '->', opt.calcValue);
+                                        }
+                                    });
+                                }
+                            });
+
                             // Listen to main question
                             JFCustomWidget.listenFromField(qName, 'change', value => {
                                 log('info', 'Question changed:', qName, 'Value:', value);
@@ -175,43 +199,7 @@
                                     JFCustomWidget.listenFromField(inputId, 'change', value => {
                                         log('info', 'Radio option changed:', inputId, 'Value:', value);
                                         if (value && value !== 'false') {
-                                            // Get the field value by ID to access the calcValue
-                                            JFCustomWidget.getFieldsValueById([inputId], data => {
-                                                log('info', 'Got field data:', data);
-                                                // Try to get the calcValue from the options
-                                                const options = data?.data?.[0]?.options;
-                                                if (options) {
-                                                    const selectedOption = options.find(opt => opt.value === value);
-                                                    if (selectedOption?.calcValue) {
-                                                        log('info', 'Found calcValue from options:', selectedOption.calcValue);
-                                                        handleRadioChange(id, selectedOption.calcValue);
-                                                        return;
-                                                    }
-                                                }
-                                                
-                                                // If we have a direct calcValue, use that
-                                                if (data?.data?.[0]?.calcValue) {
-                                                    log('info', 'Found direct calcValue:', data.data[0].calcValue);
-                                                    handleRadioChange(id, data.data[0].calcValue);
-                                                    return;
-                                                }
-
-                                                // Last resort: try to get the value from the parent question
-                                                JFCustomWidget.getFieldsValueByName([qName], questionData => {
-                                                    log('info', 'Got question data:', questionData);
-                                                    if (questionData?.data?.[0]?.options) {
-                                                        const qOptions = questionData.data[0].options;
-                                                        const qSelectedOption = qOptions.find(opt => opt.text === value);
-                                                        if (qSelectedOption?.calcValue) {
-                                                            log('info', 'Found calcValue from question options:', qSelectedOption.calcValue);
-                                                            handleRadioChange(id, qSelectedOption.calcValue);
-                                                            return;
-                                                        }
-                                                    }
-                                                    log('warn', 'No calcValue found anywhere for:', inputId);
-                                                    handleRadioChange(id, value);
-                                                });
-                                            });
+                                            handleRadioChange(id, value);
                                         }
                                     });
                                     log('info', 'Successfully set up listener for radio:', inputId);
