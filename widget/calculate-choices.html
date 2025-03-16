@@ -141,52 +141,39 @@
 
                     // Keep track of field values
                     let fieldValues = {};
-                    let count = 0;
 
-                    // Set up listeners for specific question IDs
-                    const questions = [
-                        { name: 'q7_q1' },
-                        { name: 'q9_q2' }
-                    ];
-                    
-                    log('info', 'Setting up listeners for questions:', questions);
+                    // Set up listeners for questions
+                    const questionIds = [7, 9];
+                    log('info', 'Setting up listeners for questions:', questionIds);
 
                     // Function to handle radio change
-                    function handleRadioChange(questionName, value) {
-                        log('info', 'Radio changed for question:', questionName, 'Value:', value);
-                        // If the value is the display text, try to extract data-calcvalue
-                        if (value && typeof value === 'string' && value.length > 10) {
-                            // This is likely the display text, get the data-calcvalue
-                            fieldValues[questionName] = targetArchetype;
-                            log('info', 'Using targetArchetype as value for selected radio');
-                        } else {
-                            fieldValues[questionName] = value;
-                        }
+                    function handleRadioChange(questionId, value) {
+                        const key = `q${questionId}`;
+                        log('info', 'Radio changed for question:', key, 'Value:', value);
+                        fieldValues[key] = value?.length > 10 ? targetArchetype : value;
                         updateCount();
                     }
 
                     // Set up listeners for each question
-                    questions.forEach(question => {
-                        log('info', 'Setting up listener for question:', question.name);
+                    questionIds.forEach(id => {
+                        const qName = `q${id}`;
+                        log('info', 'Setting up listener for question:', qName);
                         
-                        // Listen to the question by name
                         try {
-                            JFCustomWidget.listenFromField(question.name, 'change', function(value) {
-                                log('info', 'Question changed by name:', question.name, 'Value:', value);
-                                handleRadioChange(question.name, value);
+                            JFCustomWidget.listenFromField(qName, 'change', value => {
+                                log('info', 'Question changed:', qName, 'Value:', value);
+                                handleRadioChange(id, value);
                             });
-                            log('info', 'Successfully set up listener for question name:', question.name);
-                        } catch (err) {
-                            log('warn', 'Failed to set up listener for question name:', question.name, err);
-                        }
+                            log('info', 'Successfully set up listener for:', qName);
 
-                        // Get initial value
-                        JFCustomWidget.getFieldsValueById([question.name], function(data) {
-                            log('info', 'Got initial value for question:', question.name, 'Data:', data);
-                            if (data && data[question.name]) {
-                                handleRadioChange(question.name, data[question.name]);
-                            }
-                        });
+                            // Get initial value
+                            JFCustomWidget.getFieldsValueById([qName], data => {
+                                log('info', 'Got initial value for question:', qName, 'Data:', data);
+                                if (data?.[qName]) handleRadioChange(id, data[qName]);
+                            });
+                        } catch (err) {
+                            log('warn', 'Failed to set up listener for:', qName, err);
+                        }
                     });
 
                     // Function to update count
@@ -194,18 +181,13 @@
                         log('info', 'Updating count, current values:', fieldValues);
                         let count = 0;
                         
-                        // Log all current field values
                         Object.entries(fieldValues).forEach(([key, value]) => {
                             log('info', 'Checking field:', key, 'Value:', value);
-                            if (value === targetArchetype) {
+                            if (value === targetArchetype || 
+                                (typeof value === 'string' && 
+                                (value.includes('step-by-step') || value.includes('rock-solid')))) {
                                 count++;
                                 log('info', 'Found match in field:', key);
-                            } else if (value && typeof value === 'string' && value.length > 10) {
-                                // This is a display text value, check if it's from the Atlas option
-                                if (value.includes('step-by-step') || value.includes('rock-solid')) {
-                                    count++;
-                                    log('info', 'Found match in field (by text):', key);
-                                }
                             }
                         });
                         
@@ -213,7 +195,6 @@
                         document.getElementById('choiceCount').textContent = count;
                         document.getElementById('errorMsg').textContent = '';
                         
-                        // Send data back to form
                         JFCustomWidget.sendData({
                             valid: true,
                             value: count.toString()
