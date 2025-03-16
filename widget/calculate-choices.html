@@ -29,13 +29,6 @@
             font-size: 12px;
             margin-top: 5px;
         }
-        .debug {
-            font-family: monospace;
-            font-size: 10px;
-            color: #666;
-            margin-top: 10px;
-            word-break: break-all;
-        }
     </style>
 </head>
 <body>
@@ -43,7 +36,6 @@
         <div class="label">Archetype Counter</div>
         <div class="count" id="choiceCount">0</div>
         <div class="error" id="errorMsg"></div>
-        <div class="debug" id="debugInfo"></div>
     </div>
 
     <script type="text/javascript">
@@ -53,29 +45,16 @@
             console.error(msg);
         }
 
-        // Show debug info
-        function showDebug(msg) {
-            document.getElementById('debugInfo').textContent = msg;
-            console.log(msg);
-        }
-
         // Initialize widget
         function initWidget() {
             try {
                 JFCustomWidget.subscribe("ready", function(data) {
                     try {
-                        // Debug all available settings
-                        var allSettings = JFCustomWidget.getWidgetSettings();
-                        console.log('All widget settings:', allSettings);
-                        showDebug('Settings: ' + JSON.stringify(allSettings));
-
-                        // Get the target choice using the correct parameter name
-                        var targetArchetype = JFCustomWidget.getWidgetSetting('targetChoice');
-                        
-                        console.log('Target Archetype:', targetArchetype);
+                        // Get the target archetype from the text parameter
+                        var targetArchetype = JFCustomWidget.getWidgetSetting('archetype');
                         
                         if (!targetArchetype) {
-                            showError('No archetype selected. Please set the targetChoice parameter.');
+                            showError('Please enter an archetype (Atlas, Seer, Envoy, or Nexus)');
                             return;
                         }
                         
@@ -86,7 +65,6 @@
                         function calculateChoiceTotal() {
                             JFCustomWidget.getFormData(function(data) {
                                 try {
-                                    console.log('Full form data:', data);
                                     var questions = data.questions;
                                     var count = 0;
 
@@ -96,26 +74,15 @@
                                         
                                         // Check if it's a single choice question and has an answer
                                         if (question.type === 'control_radio' && question.answer) {
-                                            console.log('\nQuestion ID:', qid);
-                                            console.log('Question type:', question.type);
-                                            console.log('Selected answer:', question.answer);
-                                            
                                             // Find the selected radio input's data-calcvalue
                                             var selectedInput = question.options.find(opt => opt.text === question.answer);
-                                            if (selectedInput) {
-                                                console.log('Selected option:', selectedInput);
-                                                console.log('Calculation value:', selectedInput.calculationValue);
-                                                
-                                                if (selectedInput.calculationValue === targetArchetype) {
-                                                    count++;
-                                                    console.log('Match found! New count:', count);
-                                                }
+                                            if (selectedInput && selectedInput.calculationValue === targetArchetype) {
+                                                count++;
                                             }
                                         }
                                     }
 
                                     // Update the display
-                                    console.log('\nFinal count for', targetArchetype + ':', count);
                                     document.getElementById('choiceCount').textContent = count;
                                     document.getElementById('errorMsg').textContent = ''; // Clear any errors
                                 } catch (err) {
@@ -129,7 +96,6 @@
 
                         // Subscribe to form changes
                         JFCustomWidget.subscribe("formData", function(data) {
-                            console.log('\nForm data changed, recalculating...');
                             calculateChoiceTotal();
                         });
 
