@@ -169,73 +169,58 @@
                     }
 
                     // Subscribe to form data events
-                    JFCustomWidget.subscribe("formData", function(data) {
-                        log('info', 'Received formData event:', data);
+                    log('info', 'Setting up form data subscription...');
+                    JFCustomWidget.subscribe("formData", function(formData) {
+                        log('info', 'Received formData event:', formData);
                         
-                        if (!data || !data.data) {
-                            log('warn', 'No form data received');
+                        if (!formData || !formData.answers) {
+                            log('warn', 'No answers in form data');
                             return;
                         }
                         
-                        // Log all form fields for debugging
-                        Object.entries(data.data).forEach(([key, value]) => {
-                            log('info', 'Form field:', key, 'Value:', value);
-                        });
-                        
-                        // Update our stored values
-                        fieldValues = data.data;
-                        updateCount();
-                    });
-
-                    // Get initial form data
-                    JFCustomWidget.getFieldsValueByName(['*'], function(fields) {
-                        log('info', 'Initial fields data:', fields);
-                        if (fields && Array.isArray(fields)) {
-                            fields.forEach(field => {
-                                log('info', 'Found field:', field.key, 'Value:', field.value);
+                        // Process each answer
+                        Object.entries(formData.answers).forEach(([qid, answer]) => {
+                            log('info', 'Processing answer:', qid, answer);
+                            
+                            // Check if this is a radio/select field
+                            if (answer && (answer.type === 'control_radio' || answer.type === 'control_dropdown')) {
+                                log('info', 'Found radio/dropdown field:', qid);
+                                
                                 // Set up listener for this field
-                                try {
-                                    JFCustomWidget.listenFromField(field.key, 'change', function(value) {
-                                        log('info', 'Field changed:', field.key, 'New value:', value);
-                                        fieldValues[field.key] = value;
-                                        updateCount();
-                                    });
-                                    log('info', 'Successfully set up listener for field:', field.key);
-                                } catch (err) {
-                                    log('warn', 'Failed to set up listener for field:', field.key, 'Error:', err);
-                                }
-                            });
-                        } else {
-                            log('warn', 'No fields found or invalid fields data');
-                        }
-                    });
-
-                    // Also try listening to all questions with data-calcvalue
-                    JFCustomWidget.getFieldsValueByName(['*'], function(fields) {
-                        log('info', 'Searching for questions with data-calcvalue...');
-                        if (fields && Array.isArray(fields)) {
-                            fields.forEach(field => {
-                                const possibleIds = [
-                                    field.key,
-                                    'input_' + field.key,
-                                    'q' + field.key + '_quantity'
+                                const fieldIds = [
+                                    qid,
+                                    qid.replace('input_', ''),
+                                    'input_' + qid.replace('input_', '')
                                 ];
                                 
-                                possibleIds.forEach(id => {
+                                fieldIds.forEach(id => {
                                     try {
+                                        log('info', 'Setting up listener for:', id);
                                         JFCustomWidget.listenFromField(id, 'change', function(value) {
-                                            log('info', 'Field value changed:', id, 'New value:', value);
+                                            log('info', 'Field changed:', id, 'Value:', value);
                                             fieldValues[id] = value;
                                             updateCount();
                                         });
-                                        log('info', 'Successfully set up listener for ID:', id);
                                     } catch (err) {
-                                        log('warn', 'Failed to set up listener for ID:', id, 'Error:', err);
+                                        log('warn', 'Failed to set up listener for:', id, err);
                                     }
                                 });
-                            });
-                        }
+                                
+                                // Store initial value if available
+                                if (answer.answer) {
+                                    log('info', 'Setting initial value for:', qid, answer.answer);
+                                    fieldValues[qid] = answer.answer;
+                                }
+                            }
+                        });
+                        
+                        // Update count after processing all fields
+                        updateCount();
                     });
+
+                    // Request initial form data
+                    log('info', 'Requesting initial form data...');
+                    JFCustomWidget.subscribe("formData", null);
 
                     // Handle form submission
                     log('info', 'Subscribing to submit event...');

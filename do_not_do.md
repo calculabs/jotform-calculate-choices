@@ -48,6 +48,12 @@
    - Set up individual field listeners with `listenFromField`
    - Log all detected fields and their values for debugging
 
+10. **Don't ignore the formData event structure**
+   - The formData event contains an `answers` object, not just `data`
+   - Each answer has a `type` property indicating the field type
+   - Use the answer's `type` to identify relevant fields (e.g., 'control_radio', 'control_dropdown')
+   - Initial values are available in the answer's `answer` property
+
 These mistakes often stemmed from:
 - Assuming standard JavaScript methods would work in JotForm's widget environment
 - Not fully understanding JotForm's widget API structure
@@ -76,3 +82,13 @@ Best Practices:
    - Log when listeners are successfully set up
    - Log all field value changes
    - Log the results of value matching attempts
+8. Use formData event effectively:
+   - Subscribe to formData events for field discovery
+   - Check answer types to identify relevant fields
+   - Store initial values from the formData event
+   - Request initial form data explicitly
+9. Handle field values properly:
+   - Store values using consistent field IDs
+   - Update counts immediately when values change
+   - Process all relevant fields before updating final count
+   - Log all value changes and processing steps
