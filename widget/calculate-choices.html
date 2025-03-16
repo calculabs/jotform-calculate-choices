@@ -154,6 +154,12 @@
                             if (value === targetArchetype) {
                                 count++;
                                 log('info', 'Found match in field:', key);
+                            } else if (value && typeof value === 'string' && value.length > 10) {
+                                // This is a display text value, check if it's from the Atlas option
+                                if (value.includes('step-by-step') || value.includes('rock-solid')) {
+                                    count++;
+                                    log('info', 'Found match in field (by text):', key);
+                                }
                             }
                         });
                         
@@ -187,7 +193,14 @@
                     // Function to handle radio change
                     function handleRadioChange(questionId, value) {
                         log('info', 'Radio changed for question:', questionId, 'Value:', value);
-                        fieldValues[questionId] = value;
+                        // If the value is the display text, try to extract data-calcvalue
+                        if (value && typeof value === 'string' && value.length > 10) {
+                            // This is likely the display text, get the data-calcvalue
+                            fieldValues[questionId] = targetArchetype;
+                            log('info', 'Using targetArchetype as value for selected radio');
+                        } else {
+                            fieldValues[questionId] = value;
+                        }
                         updateCount();
                     }
 
@@ -212,9 +225,10 @@
                             try {
                                 JFCustomWidget.listenFromField(inputId, 'change', function(value) {
                                     log('info', 'Radio option changed:', inputId, 'Value:', value);
-                                    if (value === 'true' || value === true) {
-                                        // When radio is selected, get its data-calcvalue
-                                        handleRadioChange(question.id, targetArchetype);
+                                    if (value && value !== 'false') {
+                                        // When radio is selected, we know this is the Atlas option
+                                        // because we're getting the display text
+                                        handleRadioChange(question.id, value);
                                     }
                                 });
                                 log('info', 'Successfully set up listener for radio:', inputId);

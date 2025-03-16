@@ -60,11 +60,13 @@
     - Need to listen to both question name and individual radio inputs
     - Radio change events return boolean values, not the selected option value
 
-12. **Don't ignore the data-calcvalue attribute**
-    - Radio inputs store their actual value in `data-calcvalue`
-    - The `value` attribute contains the display text
-    - When a radio is selected, you get `true` as the value
-    - Need to correlate the selection with the `data-calcvalue`
+12. **Don't assume radio values are always data-calcvalue**
+    - Radio change events can return different value types:
+      - The display text (long string)
+      - Boolean true/false for selection state
+      - The data-calcvalue in some cases
+    - Need to handle all possible value formats
+    - Implement fallback checks for display text
 
 These mistakes often stemmed from:
 - Assuming standard JavaScript methods would work in JotForm's widget environment
@@ -114,3 +116,13 @@ Best Practices:
    - Use consistent naming conventions
    - Handle initial values and changes separately
    - Log all radio selection events
+11. Handle radio values robustly:
+    - Check value type and length to determine format
+    - Implement fallback text-based matching
+    - Use both data-calcvalue and display text checks
+    - Log all value formats received
+12. Implement multiple validation approaches:
+    - Use data-calcvalue when available
+    - Fall back to display text matching
+    - Handle both boolean and string values
+    - Provide clear logging for value handling
