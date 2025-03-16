@@ -178,25 +178,6 @@
                         height: 150
                     });
 
-                    // Request initial form data
-                    log('info', 'Requesting initial form data...');
-                    JFCustomWidget.getFormData(function(data) {
-                        log('info', 'Initial form data received:', data);
-                        if (data && data.answers) {
-                            var count = 0;
-                            Object.keys(data.answers).forEach(function(qid) {
-                                var answer = data.answers[qid];
-                                if (answer) {
-                                    const answerValue = answer.answer || answer.calculatedValue;
-                                    if (answerValue === targetArchetype) {
-                                        count++;
-                                    }
-                                }
-                            });
-                            updateCount(count);
-                        }
-                    });
-
                 } catch (err) {
                     log('error', 'Error in ready handler:', err);
                     showError('Error initializing widget: ' + err.message);
