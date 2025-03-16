@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="//js.jotform.com/JotFormCustomWidget.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif;
+            margin: 0;
+            padding: 10px;
+        }
+        .result-container {
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 4px;
+            background: #f9f9f9;
+        }
+        .count {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .label {
+            color: #7f8c8d;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="result-container">
+        <div class="label">Total count for choice:</div>
+        <div class="count" id="choiceCount">0</div>
+    </div>
+
+    <script type="text/javascript">
+        JFCustomWidget.subscribe("ready", function() {
+            // Get which choice (A,B,C,D) this widget instance should calculate
+            var targetChoice = JFCustomWidget.getWidgetSetting('targetChoice');
+            var choiceValues = {
+                'A': '1',
+                'B': '2',
+                'C': '3',
+                'D': '4'
+            };
+            
+            // Update the label to show which choice we're counting
+            document.querySelector('.label').textContent = 'Total count for choice ' + targetChoice + ' (value: ' + choiceValues[targetChoice] + ')';
+
+            // Function to calculate total for the specified choice
+            function calculateChoiceTotal() {
+                JFCustomWidget.getFormData(function(data) {
+                    var questions = data.questions;
+                    var count = 0;
+
+                    // Loop through all questions
+                    for (var qid in questions) {
+                        var question = questions[qid];
+                        
+                        // Check if it's a single choice question and has an answer
+                        if (question.type === 'control_radio' && question.answer) {
+                            // Get the selected value
+                            var selectedValue = question.answer;
+                            
+                            // Check if the selected value matches our target choice value
+                            if (selectedValue === choiceValues[targetChoice]) {
+                                count++;
+                            }
+                        }
+                    }
+
+                    // Update the display
+                    document.getElementById('choiceCount').textContent = count;
+                });
+            }
+
+            // Initial calculation
+            calculateChoiceTotal();
+
+            // Subscribe to form changes
+            JFCustomWidget.subscribe("formData", function(data) {
+                calculateChoiceTotal();
+            });
+
+            // Handle form submission
+            JFCustomWidget.subscribe("submit", function() {
+                var msg = {
+                    valid: true,
+                    value: document.getElementById('choiceCount').textContent
+                };
+                JFCustomWidget.sendSubmit(msg);
+            });
+        });
+    </script>
+</body>
+</html> 

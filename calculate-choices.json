@@ -1,0 +1,18 @@
+{
+    "name": "Calculate Choice Totals",
+    "type": "WIDGET",
+    "js": false,
+    "css": false,
+    "html": "calculate-choices.html",
+    "version": "1.0.0",
+    "icon": "https://cdn.icon-icons.com/icons2/2248/PNG/512/calculator_icon_138529.png",
+    "settings": {
+        "targetChoice": {
+            "type": "string",
+            "title": "Target Choice",
+            "description": "Which choice value to calculate (A, B, C, or D)",
+            "default": "A",
+            "enum": ["A", "B", "C", "D"]
+        }
+    }
+} 
