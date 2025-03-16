@@ -3,8 +3,33 @@
 <head>
     <script src="https://js.jotform.com/JotFormCustomWidget.min.js"></script>
     <script type="text/javascript">
-        // Immediate console log to verify script loading
-        console.log('Widget script starting to load...');
+        // Custom logging function that uses JotForm's messaging
+        function log(type, ...args) {
+            // Regular console logging
+            console[type](...args);
+            
+            // Only send logs via JotForm if the widget API is ready
+            if (window.JFCustomWidget && JFCustomWidget.sendData) {
+                try {
+                    JFCustomWidget.sendData({
+                        valid: true,
+                        value: JSON.stringify({
+                            type: 'log',
+                            logType: type,
+                            message: args.map(arg => 
+                                typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
+                            ).join(' ')
+                        })
+                    });
+                } catch (e) {
+                    // Fallback to regular console if messaging fails
+                    console.error('Failed to send log via JotForm:', e);
+                }
+            }
+        }
+
+        // Log that script is starting
+        log('info', 'Widget script starting to load...');
     </script>
     <style>
         body {
@@ -50,35 +75,35 @@
     </div>
 
     <script type="text/javascript">
-        console.log('Main widget script starting...');
+        log('info', 'Main widget script starting...');
 
         // Show error message
         function showError(msg) {
-            console.error('Widget Error:', msg);
+            log('error', 'Widget Error:', msg);
             document.getElementById('errorMsg').textContent = msg;
         }
 
         // Show debug info
         function showDebug(info) {
-            console.log('Debug Info:', info);
+            log('info', 'Debug Info:', info);
             const debugEl = document.getElementById('debugInfo');
             debugEl.textContent = typeof info === 'object' ? JSON.stringify(info, null, 2) : info;
         }
 
         // Initialize widget when DOM is ready
         document.addEventListener("DOMContentLoaded", function() {
-            console.log('DOM Content Loaded, initializing widget...');
+            log('info', 'DOM Content Loaded, initializing widget...');
             
             // Subscribe to ready event
-            console.log('Subscribing to JFCustomWidget ready event...');
+            log('info', 'Subscribing to JFCustomWidget ready event...');
             JFCustomWidget.subscribe("ready", function(data) {
-                console.log('JFCustomWidget ready event received:', data);
+                log('info', 'JFCustomWidget ready event received:', data);
                 
                 try {
                     // Get the target archetype parameter
-                    console.log('Getting widget setting for archetype...');
+                    log('info', 'Getting widget setting for archetype...');
                     const targetArchetype = JFCustomWidget.getWidgetSetting('archetype');
-                    console.log('Retrieved target archetype:', targetArchetype);
+                    log('info', 'Retrieved target archetype:', targetArchetype);
                     showDebug('Target archetype: ' + targetArchetype);
                     
                     if (!targetArchetype) {
@@ -88,16 +113,16 @@
                     
                     // Update the label
                     document.querySelector('.label').textContent = 'Total ' + targetArchetype + ' responses:';
-                    console.log('Updated label for archetype:', targetArchetype);
+                    log('info', 'Updated label for archetype:', targetArchetype);
 
                     // Function to update count
                     function updateCount(count) {
-                        console.log('Updating count to:', count);
+                        log('info', 'Updating count to:', count);
                         document.getElementById('choiceCount').textContent = count;
                         document.getElementById('errorMsg').textContent = '';
                         
                         // Send data back to form
-                        console.log('Sending data back to form:', count);
+                        log('info', 'Sending data back to form:', count);
                         JFCustomWidget.sendData({
                             valid: true,
                             value: count.toString()
@@ -105,9 +130,9 @@
                     }
 
                     // Subscribe to form changes
-                    console.log('Subscribing to formData events...');
+                    log('info', 'Subscribing to formData events...');
                     JFCustomWidget.subscribe("formData", function(formData) {
-                        console.log('Form data event received:', formData);
+                        log('info', 'Form data event received:', formData);
                         
                         try {
                             showDebug('Form data: ' + JSON.stringify(formData, null, 2));
@@ -115,29 +140,29 @@
                             var count = 0;
                             
                             if (formData && formData.answers) {
-                                console.log('Processing form answers...');
+                                log('info', 'Processing form answers...');
                                 // Loop through answers
                                 Object.keys(formData.answers).forEach(function(qid) {
                                     var answer = formData.answers[qid];
-                                    console.log('Checking answer:', qid, answer);
+                                    log('info', 'Checking answer:', qid, answer);
                                     if (answer && answer.answer === targetArchetype) {
                                         count++;
-                                        console.log('Found matching answer, count:', count);
+                                        log('info', 'Found matching answer, count:', count);
                                     }
                                 });
                             }
                             
                             updateCount(count);
                         } catch (err) {
-                            console.error('Error in formData handler:', err);
+                            log('error', 'Error in formData handler:', err);
                             showError('Error processing form data: ' + err.message);
                         }
                     });
 
                     // Handle form submission
-                    console.log('Subscribing to submit event...');
+                    log('info', 'Subscribing to submit event...');
                     JFCustomWidget.subscribe("submit", function() {
-                        console.log('Submit event received');
+                        log('info', 'Submit event received');
                         JFCustomWidget.sendSubmit({
                             valid: true,
                             value: document.getElementById('choiceCount').textContent
@@ -145,20 +170,20 @@
                     });
 
                     // Request proper height for widget
-                    console.log('Requesting frame resize...');
+                    log('info', 'Requesting frame resize...');
                     JFCustomWidget.requestFrameResize({
                         height: 150
                     });
 
                 } catch (err) {
-                    console.error('Error in ready handler:', err);
+                    log('error', 'Error in ready handler:', err);
                     showError('Error initializing widget: ' + err.message);
                 }
             });
         });
 
         // Log that script has finished loading
-        console.log('Widget script finished loading.');
+        log('info', 'Widget script finished loading.');
     </script>
 </body>
 </html> 
