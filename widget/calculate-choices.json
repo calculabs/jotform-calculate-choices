@@ -1,15 +1,17 @@
 {
     "name": "Calculate Choice Totals",
-    "height": 100,
+    "type": "IFRAME",
     "width": 200,
+    "height": 100,
     "description": "Calculates the total count of specific archetypes (Atlas, Seer, Envoy, Nexus) across all single-choice questions",
-    "parameters": {
-        "targetChoice": {
+    "additionalParameters": [
+        {
+            "name": "targetChoice",
             "type": "string",
-            "title": "Target Choice",
+            "humanReadableName": "Target Choice",
             "description": "Which choice to calculate (A=Atlas, B=Seer, C=Envoy, D=Nexus)",
-            "default": "A",
-            "enum": ["A", "B", "C", "D"]
+            "defaultValue": "A",
+            "choices": ["A", "B", "C", "D"]
         }
-    }
+    ]
 } 
