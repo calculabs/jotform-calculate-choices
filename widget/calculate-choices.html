@@ -146,105 +146,94 @@
                     // Function to update count
                     function updateCount() {
                         log('info', 'Updating count, current values:', fieldValues);
-                        count = Object.values(fieldValues).filter(value => value === targetArchetype).length;
-                        log('info', 'New count:', count);
+                        let count = 0;
                         
+                        // Log all current field values
+                        Object.entries(fieldValues).forEach(([key, value]) => {
+                            log('info', 'Checking field:', key, 'Value:', value);
+                            if (value === targetArchetype) {
+                                count++;
+                                log('info', 'Found match in field:', key);
+                            }
+                        });
+                        
+                        log('info', 'Final count:', count);
                         document.getElementById('choiceCount').textContent = count;
                         document.getElementById('errorMsg').textContent = '';
                         
-                        // Store count back to form field
-                        const qid = JFCustomWidget.getWidgetSetting('qid');
-                        log('info', 'Storing count to field, QID:', qid, 'Count:', count);
-                        
-                        // Try storing by both ID formats
-                        const fieldIds = [
-                            qid,                    // Raw QID
-                            'input_' + qid,         // input_QID format
-                            'q' + qid + '_quantity' // qQID_quantity format
-                        ];
-                        
-                        fieldIds.forEach(fieldId => {
-                            log('info', 'Attempting to store to field:', fieldId);
-                            try {
-                                JFCustomWidget.storeToField(fieldId, count.toString());
-                            } catch (err) {
-                                log('warn', 'Failed to store to field', fieldId, ':', err);
-                            }
-                        });
-
-                        // Also send data via sendData for compatibility
+                        // Send data back to form
                         JFCustomWidget.sendData({
                             valid: true,
                             value: count.toString()
                         });
                     }
 
-                    // Function to handle field changes
-                    function handleFieldChange(fieldId, value) {
-                        log('info', 'Field changed:', fieldId, 'Value:', value);
-                        fieldValues[fieldId] = value;
-                        updateCount();
-                    }
-
-                    // Try to get all questions by name
-                    log('info', 'Attempting to get questions by name...');
-                    JFCustomWidget.getFieldsValueByName(['*'], function(data) {
-                        log('info', 'Got fields by name:', data);
+                    // Subscribe to form data events
+                    JFCustomWidget.subscribe("formData", function(data) {
+                        log('info', 'Received formData event:', data);
                         
-                        if (data) {
-                            Object.keys(data).forEach(fieldName => {
-                                log('info', 'Setting up listener for field by name:', fieldName);
-                                JFCustomWidget.listenFromField(fieldName, 'change', function(value) {
-                                    log('info', 'Field value changed (by name):', fieldName, value);
-                                    handleFieldChange(fieldName, value);
-                                });
+                        if (!data || !data.data) {
+                            log('warn', 'No form data received');
+                            return;
+                        }
+                        
+                        // Log all form fields for debugging
+                        Object.entries(data.data).forEach(([key, value]) => {
+                            log('info', 'Form field:', key, 'Value:', value);
+                        });
+                        
+                        // Update our stored values
+                        fieldValues = data.data;
+                        updateCount();
+                    });
+
+                    // Get initial form data
+                    JFCustomWidget.getFieldsValueByName(['*'], function(fields) {
+                        log('info', 'Initial fields data:', fields);
+                        if (fields && Array.isArray(fields)) {
+                            fields.forEach(field => {
+                                log('info', 'Found field:', field.key, 'Value:', field.value);
+                                // Set up listener for this field
+                                try {
+                                    JFCustomWidget.listenFromField(field.key, 'change', function(value) {
+                                        log('info', 'Field changed:', field.key, 'New value:', value);
+                                        fieldValues[field.key] = value;
+                                        updateCount();
+                                    });
+                                    log('info', 'Successfully set up listener for field:', field.key);
+                                } catch (err) {
+                                    log('warn', 'Failed to set up listener for field:', field.key, 'Error:', err);
+                                }
                             });
+                        } else {
+                            log('warn', 'No fields found or invalid fields data');
                         }
                     });
 
-                    // Subscribe to form changes
-                    log('info', 'Subscribing to formData events...');
-                    JFCustomWidget.subscribe("formData", function(formData) {
-                        log('info', 'Form data event received:', formData);
-                        
-                        try {
-                            showDebug('Form data: ' + JSON.stringify(formData, null, 2));
-                            
-                            // Get all radio fields from the form data
-                            if (formData && formData.answers) {
-                                // Log all questions first
-                                log('info', 'All questions in form:', Object.keys(formData.answers).map(qid => {
-                                    const answer = formData.answers[qid];
-                                    return {
-                                        qid,
-                                        type: answer.type,
-                                        text: answer.text,
-                                        answer: answer.answer
-                                    };
-                                }));
-
-                                Object.keys(formData.answers).forEach(qid => {
-                                    const answer = formData.answers[qid];
-                                    const fieldId = qid.replace('input_', '');
-                                    
-                                    // Try both the full ID and the numeric ID
-                                    [qid, fieldId].forEach(id => {
-                                        log('info', 'Setting up listener for field:', id);
+                    // Also try listening to all questions with data-calcvalue
+                    JFCustomWidget.getFieldsValueByName(['*'], function(fields) {
+                        log('info', 'Searching for questions with data-calcvalue...');
+                        if (fields && Array.isArray(fields)) {
+                            fields.forEach(field => {
+                                const possibleIds = [
+                                    field.key,
+                                    'input_' + field.key,
+                                    'q' + field.key + '_quantity'
+                                ];
+                                
+                                possibleIds.forEach(id => {
+                                    try {
                                         JFCustomWidget.listenFromField(id, 'change', function(value) {
-                                            log('info', 'Field value changed:', id, value);
-                                            handleFieldChange(id, value);
+                                            log('info', 'Field value changed:', id, 'New value:', value);
+                                            fieldValues[id] = value;
+                                            updateCount();
                                         });
-                                    });
-                                    
-                                    // Get initial value if exists
-                                    if (answer && answer.answer) {
-                                        handleFieldChange(qid, answer.answer);
+                                        log('info', 'Successfully set up listener for ID:', id);
+                                    } catch (err) {
+                                        log('warn', 'Failed to set up listener for ID:', id, 'Error:', err);
                                     }
                                 });
-                            }
-                        } catch (err) {
-                            log('error', 'Error in formData handler:', err);
-                            showError('Error processing form data: ' + err.message);
+                            });
                         }
                     });
 
