@@ -100,10 +100,24 @@
                 log('info', 'JFCustomWidget ready event received:', data);
                 
                 try {
-                    // Get the target archetype parameter directly
-                    const targetArchetype = JFCustomWidget.getWidgetSetting('archetype');
+                    // Parse settings from the ready event data
+                    const settingsStr = data.settings;
+                    log('info', 'Raw settings string:', settingsStr);
+                    
+                    // Decode the URL-encoded settings string
+                    const decodedSettings = decodeURIComponent(settingsStr);
+                    log('info', 'Decoded settings:', decodedSettings);
+                    
+                    // Parse the JSON settings array
+                    const settings = JSON.parse(decodedSettings);
+                    log('info', 'Parsed settings:', settings);
+                    
+                    // Find the archetype setting
+                    const archetypeSetting = settings.find(s => s.name === 'archetype');
+                    const targetArchetype = archetypeSetting ? archetypeSetting.value : null;
+                    
                     log('info', 'Retrieved target archetype:', targetArchetype);
-                    showDebug('Target archetype: ' + targetArchetype);
+                    showDebug('Settings: ' + JSON.stringify(settings, null, 2) + '\nTarget archetype: ' + targetArchetype);
                     
                     if (!targetArchetype) {
                         showError('Please set the archetype parameter in widget settings (Atlas, Seer, Envoy, or Nexus)');
@@ -127,7 +141,27 @@
                         document.getElementById('choiceCount').textContent = count;
                         document.getElementById('errorMsg').textContent = '';
                         
-                        // Send data back to form
+                        // Store count back to form field
+                        const qid = JFCustomWidget.getWidgetSetting('qid');
+                        log('info', 'Storing count to field, QID:', qid, 'Count:', count);
+                        
+                        // Try storing by both ID formats
+                        const fieldIds = [
+                            qid,                    // Raw QID
+                            'input_' + qid,         // input_QID format
+                            'q' + qid + '_quantity' // qQID_quantity format
+                        ];
+                        
+                        fieldIds.forEach(fieldId => {
+                            log('info', 'Attempting to store to field:', fieldId);
+                            try {
+                                JFCustomWidget.storeToField(fieldId, count.toString());
+                            } catch (err) {
+                                log('warn', 'Failed to store to field', fieldId, ':', err);
+                            }
+                        });
+
+                        // Also send data via sendData for compatibility
                         JFCustomWidget.sendData({
                             valid: true,
                             value: count.toString()
