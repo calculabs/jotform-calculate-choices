@@ -151,10 +151,30 @@
                             
                             // Get all radio fields from the form data
                             if (formData && formData.answers) {
+                                // Log all questions first
+                                log('info', 'All questions in form:', Object.keys(formData.answers).map(qid => {
+                                    const answer = formData.answers[qid];
+                                    return {
+                                        qid,
+                                        type: answer.type,
+                                        text: answer.text,
+                                        answer: answer.answer
+                                    };
+                                }));
+
+                                // Try to get all field values
+                                const fieldIds = Object.keys(formData.answers).map(qid => parseInt(qid.replace('input_', '')));
+                                log('info', 'Attempting to get values for fields:', fieldIds);
+                                
+                                JFCustomWidget.getFieldsValueById(fieldIds, function(data) {
+                                    log('info', 'Got field values:', data);
+                                });
+
                                 Object.keys(formData.answers).forEach(qid => {
                                     // Listen to changes on this field
                                     log('info', 'Setting up listener for field:', qid);
                                     JFCustomWidget.listenFromField(qid, 'change', function(value) {
+                                        log('info', 'Field value changed:', qid, value);
                                         handleFieldChange(qid, value);
                                     });
                                     
