@@ -141,6 +141,22 @@
                         updateCount();
                     }
 
+                    // Try to get all questions by name
+                    log('info', 'Attempting to get questions by name...');
+                    JFCustomWidget.getFieldsValueByName(['*'], function(data) {
+                        log('info', 'Got fields by name:', data);
+                        
+                        if (data) {
+                            Object.keys(data).forEach(fieldName => {
+                                log('info', 'Setting up listener for field by name:', fieldName);
+                                JFCustomWidget.listenFromField(fieldName, 'change', function(value) {
+                                    log('info', 'Field value changed (by name):', fieldName, value);
+                                    handleFieldChange(fieldName, value);
+                                });
+                            });
+                        }
+                    });
+
                     // Subscribe to form changes
                     log('info', 'Subscribing to formData events...');
                     JFCustomWidget.subscribe("formData", function(formData) {
@@ -162,24 +178,20 @@
                                     };
                                 }));
 
-                                // Try to get all field values
-                                const fieldIds = Object.keys(formData.answers).map(qid => parseInt(qid.replace('input_', '')));
-                                log('info', 'Attempting to get values for fields:', fieldIds);
-                                
-                                JFCustomWidget.getFieldsValueById(fieldIds, function(data) {
-                                    log('info', 'Got field values:', data);
-                                });
-
                                 Object.keys(formData.answers).forEach(qid => {
-                                    // Listen to changes on this field
-                                    log('info', 'Setting up listener for field:', qid);
-                                    JFCustomWidget.listenFromField(qid, 'change', function(value) {
-                                        log('info', 'Field value changed:', qid, value);
-                                        handleFieldChange(qid, value);
+                                    const answer = formData.answers[qid];
+                                    const fieldId = qid.replace('input_', '');
+                                    
+                                    // Try both the full ID and the numeric ID
+                                    [qid, fieldId].forEach(id => {
+                                        log('info', 'Setting up listener for field:', id);
+                                        JFCustomWidget.listenFromField(id, 'change', function(value) {
+                                            log('info', 'Field value changed:', id, value);
+                                            handleFieldChange(id, value);
+                                        });
                                     });
                                     
                                     // Get initial value if exists
-                                    const answer = formData.answers[qid];
                                     if (answer && answer.answer) {
                                         handleFieldChange(qid, answer.answer);
                                     }
