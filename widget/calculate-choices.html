@@ -175,16 +175,31 @@
                                     JFCustomWidget.listenFromField(inputId, 'change', value => {
                                         log('info', 'Radio option changed:', inputId, 'Value:', value);
                                         if (value && value !== 'false') {
-                                            // Get the data-calcvalue directly from the radio input
-                                            const radioInput = document.getElementById(inputId);
-                                            if (radioInput && radioInput.getAttribute('data-calcvalue')) {
-                                                const calcValue = radioInput.getAttribute('data-calcvalue');
-                                                log('info', 'Found data-calcvalue:', calcValue);
-                                                handleRadioChange(id, calcValue);
-                                            } else {
-                                                log('warn', 'No data-calcvalue found for:', inputId);
-                                                handleRadioChange(id, value);
-                                            }
+                                            // Get the field value by name to access the calcValue
+                                            JFCustomWidget.getFieldsValueByName([qName], data => {
+                                                log('info', 'Got field data:', data);
+                                                if (data?.data?.[0]?.calcValue) {
+                                                    log('info', 'Found calcValue:', data.data[0].calcValue);
+                                                    handleRadioChange(id, data.data[0].calcValue);
+                                                } else {
+                                                    // Try to get the selected radio's calcValue
+                                                    const selectedValue = data?.data?.[0]?.value;
+                                                    if (selectedValue === value) {
+                                                        // This is the selected radio, use its option data
+                                                        const options = data?.data?.[0]?.options;
+                                                        if (options) {
+                                                            const selectedOption = options.find(opt => opt.text === value);
+                                                            if (selectedOption?.calcValue) {
+                                                                log('info', 'Found calcValue from options:', selectedOption.calcValue);
+                                                                handleRadioChange(id, selectedOption.calcValue);
+                                                                return;
+                                                            }
+                                                        }
+                                                    }
+                                                    log('warn', 'No calcValue found for:', qName);
+                                                    handleRadioChange(id, value);
+                                                }
+                                            });
                                         }
                                     });
                                     log('info', 'Successfully set up listener for radio:', inputId);
