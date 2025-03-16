@@ -2,6 +2,13 @@
 
 A custom JotForm widget that calculates the total count of specific answer choices (A, B, C, D) across all single-choice questions in a form.
 
+## Quick Setup
+
+Use this URL when creating a new custom widget in JotForm:
+```
+https://calculabs.github.io/jotform-calculate-choices/widget/calculate-choices.html
+```
+
 ## Features
 
 - Counts occurrences of specific answer choices (A, B, C, D) across all radio button questions
@@ -18,19 +25,15 @@ A custom JotForm widget that calculates the total count of specific answer choic
 
 ## Installation
 
-1. Download the widget files:
-   - `calculate-choices.html`: The main widget code
-   - `calculate-choices.json`: The widget manifest
-
-2. Create a new custom widget in your JotForm account:
-   - Go to your JotForm account
-   - Navigate to the Form Builder
+1. In your JotForm account:
+   - Go to the Form Builder
    - Click on "Add Form Element"
    - Select "Widgets"
    - Click "Create New Widget"
-   - Upload both files
+   - Select "iFrame Widget" as the type
+   - Enter the widget URL: `https://calculabs.github.io/jotform-calculate-choices/widget/calculate-choices.html`
 
-3. Configure the widget:
+2. Configure the widget:
    - Select which choice (A, B, C, D) this instance should track
    - Position the widget where you want the count to be displayed
 
