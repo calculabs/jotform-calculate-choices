@@ -160,11 +160,28 @@
                         log('info', 'Setting up listener for question:', qName);
                         
                         try {
+                            // Listen to main question
                             JFCustomWidget.listenFromField(qName, 'change', value => {
                                 log('info', 'Question changed:', qName, 'Value:', value);
                                 handleRadioChange(id, value);
                             });
-                            log('info', 'Successfully set up listener for:', qName);
+                            log('info', 'Successfully set up listener for question:', qName);
+
+                            // Listen to individual radio options
+                            ['0', '1', '2', '3'].forEach(option => {
+                                const inputId = `input_${id}_${option}`;
+                                try {
+                                    JFCustomWidget.listenFromField(inputId, 'change', value => {
+                                        log('info', 'Radio option changed:', inputId, 'Value:', value);
+                                        if (value && value !== 'false') {
+                                            handleRadioChange(id, value);
+                                        }
+                                    });
+                                    log('info', 'Successfully set up listener for radio:', inputId);
+                                } catch (err) {
+                                    log('warn', 'Failed to set up listener for radio:', inputId, err);
+                                }
+                            });
 
                             // Get initial value
                             JFCustomWidget.getFieldsValueById([qName], data => {
