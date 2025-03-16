@@ -169,7 +169,10 @@
                             // Get initial value
                             JFCustomWidget.getFieldsValueById([qName], data => {
                                 log('info', 'Got initial value for question:', qName, 'Data:', data);
-                                if (data?.[qName]) handleRadioChange(id, data[qName]);
+                                if (data?.data?.[0]?.value) {
+                                    log('info', 'Found initial value:', data.data[0].value);
+                                    handleRadioChange(id, data.data[0].value);
+                                }
                             });
                         } catch (err) {
                             log('warn', 'Failed to set up listener for:', qName, err);
@@ -183,9 +186,13 @@
                         
                         Object.entries(fieldValues).forEach(([key, value]) => {
                             log('info', 'Checking field:', key, 'Value:', value);
-                            if (value === targetArchetype || 
-                                (typeof value === 'string' && 
-                                (value.includes('step-by-step') || value.includes('rock-solid')))) {
+                            // Check for Atlas-specific text patterns
+                            const isAtlasText = value && typeof value === 'string' && 
+                                              (value.includes('step-by-step') || 
+                                               value.includes('rock-solid') ||
+                                               value === targetArchetype);
+                            
+                            if (isAtlasText) {
                                 count++;
                                 log('info', 'Found match in field:', key);
                             }
