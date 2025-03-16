@@ -61,42 +61,39 @@
                         // Update the label to show which archetype we're counting
                         document.querySelector('.label').textContent = 'Total ' + targetArchetype + ' responses:';
 
-                        // Function to calculate total for the specified archetype
-                        function calculateChoiceTotal() {
-                            JFCustomWidget.getFormData(function(data) {
-                                try {
-                                    var questions = data.questions;
-                                    var count = 0;
-
-                                    // Loop through all questions
-                                    for (var qid in questions) {
-                                        var question = questions[qid];
-                                        
-                                        // Check if it's a single choice question and has an answer
-                                        if (question.type === 'control_radio' && question.answer) {
-                                            // Find the selected radio input's data-calcvalue
-                                            var selectedInput = question.options.find(opt => opt.text === question.answer);
-                                            if (selectedInput && selectedInput.calculationValue === targetArchetype) {
-                                                count++;
-                                            }
-                                        }
-                                    }
-
-                                    // Update the display
-                                    document.getElementById('choiceCount').textContent = count;
-                                    document.getElementById('errorMsg').textContent = ''; // Clear any errors
-                                } catch (err) {
-                                    showError('Error calculating total: ' + err.message);
-                                }
+                        // Function to update the count display
+                        function updateCount(count) {
+                            document.getElementById('choiceCount').textContent = count;
+                            document.getElementById('errorMsg').textContent = ''; // Clear any errors
+                            
+                            // Send data back to form
+                            JFCustomWidget.sendData({
+                                valid: true,
+                                value: count.toString()
                             });
                         }
 
-                        // Initial calculation
-                        calculateChoiceTotal();
-
                         // Subscribe to form changes
-                        JFCustomWidget.subscribe("formData", function(data) {
-                            calculateChoiceTotal();
+                        JFCustomWidget.subscribe("formData", function(formData) {
+                            try {
+                                var count = 0;
+                                
+                                // Check if we have form data
+                                if (formData && formData.answers) {
+                                    // Loop through all answers
+                                    Object.keys(formData.answers).forEach(function(qid) {
+                                        var answer = formData.answers[qid];
+                                        // Check if this is a radio answer matching our target
+                                        if (answer && answer.answer === targetArchetype) {
+                                            count++;
+                                        }
+                                    });
+                                }
+                                
+                                updateCount(count);
+                            } catch (err) {
+                                showError('Error processing form data: ' + err.message);
+                            }
                         });
 
                         // Handle form submission
