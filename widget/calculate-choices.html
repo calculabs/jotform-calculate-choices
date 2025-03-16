@@ -100,15 +100,8 @@
                 log('info', 'JFCustomWidget ready event received:', data);
                 
                 try {
-                    // Parse settings from URL-encoded JSON string
-                    const settingsStr = decodeURIComponent(data.settings || '[]');
-                    const settings = JSON.parse(settingsStr);
-                    log('info', 'Decoded settings:', settings);
-
-                    // Find the archetype setting
-                    const archetypeSetting = settings.find(s => s.name === 'archetype');
-                    const targetArchetype = archetypeSetting ? archetypeSetting.value : null;
-                    
+                    // Get the target archetype parameter directly
+                    const targetArchetype = JFCustomWidget.getWidgetSetting('archetype');
                     log('info', 'Retrieved target archetype:', targetArchetype);
                     showDebug('Target archetype: ' + targetArchetype);
                     
