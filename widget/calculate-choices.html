@@ -100,24 +100,35 @@
                 log('info', 'JFCustomWidget ready event received:', data);
                 
                 try {
-                    // Parse settings from the ready event data
-                    const settingsStr = data.settings;
-                    log('info', 'Raw settings string:', settingsStr);
+                    let targetArchetype;
                     
-                    // Decode the URL-encoded settings string
-                    const decodedSettings = decodeURIComponent(settingsStr);
-                    log('info', 'Decoded settings:', decodedSettings);
+                    // First try to get setting from data.settings if it exists
+                    if (data.settings) {
+                        try {
+                            const settingsStr = data.settings;
+                            log('info', 'Raw settings string:', settingsStr);
+                            
+                            const decodedSettings = decodeURIComponent(settingsStr);
+                            log('info', 'Decoded settings:', decodedSettings);
+                            
+                            const settings = JSON.parse(decodedSettings);
+                            log('info', 'Parsed settings:', settings);
+                            
+                            const archetypeSetting = settings.find(s => s.name === 'archetype');
+                            targetArchetype = archetypeSetting ? archetypeSetting.value : null;
+                            log('info', 'Retrieved target archetype from settings:', targetArchetype);
+                        } catch (settingsErr) {
+                            log('warn', 'Failed to parse settings from data:', settingsErr);
+                        }
+                    }
                     
-                    // Parse the JSON settings array
-                    const settings = JSON.parse(decodedSettings);
-                    log('info', 'Parsed settings:', settings);
+                    // Fallback to getWidgetSetting if we couldn't get it from data.settings
+                    if (!targetArchetype) {
+                        targetArchetype = JFCustomWidget.getWidgetSetting('archetype');
+                        log('info', 'Retrieved target archetype from getWidgetSetting:', targetArchetype);
+                    }
                     
-                    // Find the archetype setting
-                    const archetypeSetting = settings.find(s => s.name === 'archetype');
-                    const targetArchetype = archetypeSetting ? archetypeSetting.value : null;
-                    
-                    log('info', 'Retrieved target archetype:', targetArchetype);
-                    showDebug('Settings: ' + JSON.stringify(settings, null, 2) + '\nTarget archetype: ' + targetArchetype);
+                    showDebug('Target archetype: ' + targetArchetype);
                     
                     if (!targetArchetype) {
                         showError('Please set the archetype parameter in widget settings (Atlas, Seer, Envoy, or Nexus)');
