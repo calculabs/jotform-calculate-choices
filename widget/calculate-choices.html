@@ -150,7 +150,8 @@
                     function handleRadioChange(questionId, value) {
                         const key = `q${questionId}`;
                         log('info', 'Radio changed for question:', key, 'Value:', value);
-                        fieldValues[key] = value?.length > 10 ? targetArchetype : value;
+                        // Store the actual value without any transformations
+                        fieldValues[key] = value;
                         updateCount();
                     }
 
