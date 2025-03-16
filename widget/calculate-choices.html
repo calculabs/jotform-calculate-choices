@@ -143,6 +143,52 @@
                     let fieldValues = {};
                     let count = 0;
 
+                    // Set up listeners for specific question IDs
+                    const questions = [
+                        { name: 'q7_typeA' },
+                        { name: 'q9_ltstronggtinKickstarting' }
+                    ];
+                    
+                    log('info', 'Setting up listeners for questions:', questions);
+
+                    // Function to handle radio change
+                    function handleRadioChange(questionName, value) {
+                        log('info', 'Radio changed for question:', questionName, 'Value:', value);
+                        // If the value is the display text, try to extract data-calcvalue
+                        if (value && typeof value === 'string' && value.length > 10) {
+                            // This is likely the display text, get the data-calcvalue
+                            fieldValues[questionName] = targetArchetype;
+                            log('info', 'Using targetArchetype as value for selected radio');
+                        } else {
+                            fieldValues[questionName] = value;
+                        }
+                        updateCount();
+                    }
+
+                    // Set up listeners for each question
+                    questions.forEach(question => {
+                        log('info', 'Setting up listener for question:', question.name);
+                        
+                        // Listen to the question by name
+                        try {
+                            JFCustomWidget.listenFromField(question.name, 'change', function(value) {
+                                log('info', 'Question changed by name:', question.name, 'Value:', value);
+                                handleRadioChange(question.name, value);
+                            });
+                            log('info', 'Successfully set up listener for question name:', question.name);
+                        } catch (err) {
+                            log('warn', 'Failed to set up listener for question name:', question.name, err);
+                        }
+
+                        // Get initial value
+                        JFCustomWidget.getFieldsValueById([question.name], function(data) {
+                            log('info', 'Got initial value for question:', question.name, 'Data:', data);
+                            if (data && data[question.name]) {
+                                handleRadioChange(question.name, data[question.name]);
+                            }
+                        });
+                    });
+
                     // Function to update count
                     function updateCount() {
                         log('info', 'Updating count, current values:', fieldValues);
@@ -173,80 +219,6 @@
                             value: count.toString()
                         });
                     }
-
-                    // Set up listeners for specific question IDs
-                    const questions = [
-                        {
-                            id: '7',
-                            name: 'q7_typeA',
-                            options: ['0', '1', '2', '3']
-                        },
-                        {
-                            id: '9',
-                            name: 'q9_ltstronggtinKickstarting',
-                            options: ['0', '1', '2', '3']
-                        }
-                    ];
-                    
-                    log('info', 'Setting up listeners for questions:', questions);
-
-                    // Function to handle radio change
-                    function handleRadioChange(questionId, value) {
-                        log('info', 'Radio changed for question:', questionId, 'Value:', value);
-                        // If the value is the display text, try to extract data-calcvalue
-                        if (value && typeof value === 'string' && value.length > 10) {
-                            // This is likely the display text, get the data-calcvalue
-                            fieldValues[questionId] = targetArchetype;
-                            log('info', 'Using targetArchetype as value for selected radio');
-                        } else {
-                            fieldValues[questionId] = value;
-                        }
-                        updateCount();
-                    }
-
-                    // Set up listeners for each question
-                    questions.forEach(question => {
-                        log('info', 'Setting up listeners for question:', question.id);
-                        
-                        // Listen to the question by name
-                        try {
-                            JFCustomWidget.listenFromField(question.name, 'change', function(value) {
-                                log('info', 'Question changed by name:', question.name, 'Value:', value);
-                                handleRadioChange(question.id, value);
-                            });
-                            log('info', 'Successfully set up listener for question name:', question.name);
-                        } catch (err) {
-                            log('warn', 'Failed to set up listener for question name:', question.name, err);
-                        }
-
-                        // Listen to each individual radio option
-                        question.options.forEach(option => {
-                            const inputId = `input_${question.id}_${option}`;
-                            try {
-                                JFCustomWidget.listenFromField(inputId, 'change', function(value) {
-                                    log('info', 'Radio option changed:', inputId, 'Value:', value);
-                                    if (value && value !== 'false') {
-                                        // When radio is selected, we know this is the Atlas option
-                                        // because we're getting the display text
-                                        handleRadioChange(question.id, value);
-                                    }
-                                });
-                                log('info', 'Successfully set up listener for radio:', inputId);
-                            } catch (err) {
-                                log('warn', 'Failed to set up listener for radio:', inputId, err);
-                            }
-                        });
-                    });
-
-                    // Get initial values
-                    questions.forEach(question => {
-                        JFCustomWidget.getFieldsValueById([question.name], function(data) {
-                            log('info', 'Got initial value for question:', question.id, 'Data:', data);
-                            if (data && data[question.name]) {
-                                handleRadioChange(question.id, data[question.name]);
-                            }
-                        });
-                    });
 
                     // Handle form submission
                     log('info', 'Subscribing to submit event...');
