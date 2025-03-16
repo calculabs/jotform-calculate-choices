@@ -34,16 +34,11 @@
     <script type="text/javascript">
         JFCustomWidget.subscribe("ready", function() {
             // Get which archetype this widget instance should calculate
-            var targetChoice = JFCustomWidget.getWidgetSetting('targetChoice');
-            var archetypeValues = {
-                'A': 'Atlas',
-                'B': 'Seer',
-                'C': 'Envoy',
-                'D': 'Nexus'
-            };
+            var targetArchetype = JFCustomWidget.getWidgetSetting('targetArchetype');
+            console.log('Target Archetype:', targetArchetype);
             
             // Update the label to show which archetype we're counting
-            document.querySelector('.label').textContent = 'Total ' + archetypeValues[targetChoice] + ' responses:';
+            document.querySelector('.label').textContent = 'Total ' + targetArchetype + ' responses:';
 
             // Function to calculate total for the specified archetype
             function calculateChoiceTotal() {
@@ -57,12 +52,21 @@
                         
                         // Check if it's a single choice question and has an answer
                         if (question.type === 'control_radio' && question.answer) {
+                            console.log('Question:', qid);
+                            console.log('Selected Answer:', question.answer);
+                            
                             // Get the calculation value from the selected radio input
                             var inputs = question.options || [];
+                            console.log('Available Options:', inputs);
+                            
                             for (var i = 0; i < inputs.length; i++) {
                                 var input = inputs[i];
-                                if (input.value === question.answer && input.calculationValue === archetypeValues[targetChoice]) {
-                                    count++;
+                                if (input.value === question.answer) {
+                                    console.log('Found matching answer. Calculation Value:', input.calculationValue);
+                                    if (input.calculationValue === targetArchetype) {
+                                        count++;
+                                        console.log('Match found! New count:', count);
+                                    }
                                     break;
                                 }
                             }
@@ -70,6 +74,7 @@
                     }
 
                     // Update the display
+                    console.log('Final count for', targetArchetype + ':', count);
                     document.getElementById('choiceCount').textContent = count;
                 });
             }
@@ -79,6 +84,7 @@
 
             // Subscribe to form changes
             JFCustomWidget.subscribe("formData", function(data) {
+                console.log('Form data changed, recalculating...');
                 calculateChoiceTotal();
             });
 
