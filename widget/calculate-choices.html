@@ -114,18 +114,31 @@
                     document.querySelector('.label').textContent = 'Total ' + targetArchetype + ' responses:';
                     log('info', 'Updated label for archetype:', targetArchetype);
 
+                    // Keep track of field values
+                    let fieldValues = {};
+                    let count = 0;
+
                     // Function to update count
-                    function updateCount(count) {
-                        log('info', 'Updating count to:', count);
+                    function updateCount() {
+                        log('info', 'Updating count, current values:', fieldValues);
+                        count = Object.values(fieldValues).filter(value => value === targetArchetype).length;
+                        log('info', 'New count:', count);
+                        
                         document.getElementById('choiceCount').textContent = count;
                         document.getElementById('errorMsg').textContent = '';
                         
                         // Send data back to form
-                        log('info', 'Sending data back to form:', count);
                         JFCustomWidget.sendData({
                             valid: true,
                             value: count.toString()
                         });
+                    }
+
+                    // Function to handle field changes
+                    function handleFieldChange(fieldId, value) {
+                        log('info', 'Field changed:', fieldId, 'Value:', value);
+                        fieldValues[fieldId] = value;
+                        updateCount();
                     }
 
                     // Subscribe to form changes
@@ -136,26 +149,22 @@
                         try {
                             showDebug('Form data: ' + JSON.stringify(formData, null, 2));
                             
-                            var count = 0;
-                            
+                            // Get all radio fields from the form data
                             if (formData && formData.answers) {
-                                log('info', 'Processing form answers...');
-                                // Loop through answers
-                                Object.keys(formData.answers).forEach(function(qid) {
-                                    var answer = formData.answers[qid];
-                                    log('info', 'Checking answer:', qid, answer);
-                                    // Check both answer and calculatedValue
-                                    if (answer) {
-                                        const answerValue = answer.answer || answer.calculatedValue;
-                                        if (answerValue === targetArchetype) {
-                                            count++;
-                                            log('info', 'Found matching answer, count:', count);
-                                        }
+                                Object.keys(formData.answers).forEach(qid => {
+                                    // Listen to changes on this field
+                                    log('info', 'Setting up listener for field:', qid);
+                                    JFCustomWidget.listenFromField(qid, 'change', function(value) {
+                                        handleFieldChange(qid, value);
+                                    });
+                                    
+                                    // Get initial value if exists
+                                    const answer = formData.answers[qid];
+                                    if (answer && answer.answer) {
+                                        handleFieldChange(qid, answer.answer);
                                     }
                                 });
                             }
-                            
-                            updateCount(count);
                         } catch (err) {
                             log('error', 'Error in formData handler:', err);
                             showError('Error processing form data: ' + err.message);
