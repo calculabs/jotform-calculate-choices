@@ -141,26 +141,26 @@
 
                     // Keep track of field values
                     let fieldValues = {};
-                    // Store option mappings
-                    let optionMappings = {};
+
+                    // Fixed mapping of option index to archetype
+                    const archetypeMap = {
+                        '0': 'Atlas',
+                        '1': 'Seer',
+                        '2': 'Envoy',
+                        '3': 'Nexus'
+                    };
 
                     // Set up listeners for questions
                     const questionIds = [7, 9];
                     log('info', 'Setting up listeners for questions:', questionIds);
 
                     // Function to handle radio change
-                    function handleRadioChange(questionId, value) {
+                    function handleRadioChange(questionId, optionIndex) {
                         const key = `q${questionId}`;
-                        log('info', 'Radio changed for question:', key, 'Value:', value);
-                        // Look up the calcValue from our stored mappings
-                        const calcValue = optionMappings[key]?.[value];
-                        if (calcValue) {
-                            log('info', 'Found stored calcValue:', calcValue);
-                            fieldValues[key] = calcValue;
-                        } else {
-                            log('warn', 'No stored calcValue found for:', value);
-                            fieldValues[key] = value;
-                        }
+                        log('info', 'Radio changed for question:', key, 'Option:', optionIndex);
+                        // Get archetype from the fixed mapping
+                        fieldValues[key] = archetypeMap[optionIndex];
+                        log('info', 'Mapped to archetype:', fieldValues[key]);
                         updateCount();
                     }
 
@@ -170,28 +170,6 @@
                         log('info', 'Setting up listener for question:', qName);
                         
                         try {
-                            // First get all options for this question to build our mapping
-                            JFCustomWidget.getFieldsValueByName([qName], data => {
-                                log('info', 'Got question data for mapping:', data);
-                                if (data?.data?.[0]?.options) {
-                                    // Create mapping of display text to calcValue
-                                    optionMappings[qName] = {};
-                                    data.data[0].options.forEach(opt => {
-                                        if (opt.text && opt.calcValue) {
-                                            optionMappings[qName][opt.text] = opt.calcValue;
-                                            log('info', `Stored mapping for ${qName}:`, opt.text, '->', opt.calcValue);
-                                        }
-                                    });
-                                }
-                            });
-
-                            // Listen to main question
-                            JFCustomWidget.listenFromField(qName, 'change', value => {
-                                log('info', 'Question changed:', qName, 'Value:', value);
-                                handleRadioChange(id, value);
-                            });
-                            log('info', 'Successfully set up listener for question:', qName);
-
                             // Listen to individual radio options
                             ['0', '1', '2', '3'].forEach(option => {
                                 const inputId = `input_${id}_${option}`;
@@ -199,7 +177,7 @@
                                     JFCustomWidget.listenFromField(inputId, 'change', value => {
                                         log('info', 'Radio option changed:', inputId, 'Value:', value);
                                         if (value && value !== 'false') {
-                                            handleRadioChange(id, value);
+                                            handleRadioChange(id, option);
                                         }
                                     });
                                     log('info', 'Successfully set up listener for radio:', inputId);
@@ -208,13 +186,11 @@
                                 }
                             });
 
-                            // Get initial value
+                            // Get initial value - we might need to handle this differently
                             JFCustomWidget.getFieldsValueById([qName], data => {
                                 log('info', 'Got initial value for question:', qName, 'Data:', data);
-                                if (data?.data?.[0]?.value) {
-                                    log('info', 'Found initial value:', data.data[0].value);
-                                    handleRadioChange(id, data.data[0].value);
-                                }
+                                // We'll skip initial value handling for now since it's trickier
+                                // to determine which option was selected initially
                             });
                         } catch (err) {
                             log('warn', 'Failed to set up listener for:', qName, err);
