@@ -175,7 +175,17 @@
                                     JFCustomWidget.listenFromField(inputId, 'change', value => {
                                         log('info', 'Radio option changed:', inputId, 'Value:', value);
                                         if (value && value !== 'false') {
-                                            handleRadioChange(id, value);
+                                            // If we get a long string, it's the display text
+                                            // Try to get the data-calcvalue from the radio input
+                                            JFCustomWidget.getFieldsValueById([inputId], data => {
+                                                if (data?.data?.[0]?.calcValue) {
+                                                    log('info', 'Found calcValue:', data.data[0].calcValue);
+                                                    handleRadioChange(id, data.data[0].calcValue);
+                                                } else {
+                                                    log('warn', 'No calcValue found for:', inputId);
+                                                    handleRadioChange(id, value);
+                                                }
+                                            });
                                         }
                                     });
                                     log('info', 'Successfully set up listener for radio:', inputId);
