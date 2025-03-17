@@ -3,7 +3,7 @@
 <head>
     <script src="https://js.jotform.com/JotFormCustomWidget.min.js"></script>
     <script type="module">
-        import { QUESTION_IDS, ARCHETYPE_MAP, OPTION_INDICES } from './map.js';
+        import { ARCHETYPE_MAP, OPTION_INDICES } from './map.js';
         import { log } from './logger.js';
 
         // Make log function available globally
@@ -44,7 +44,7 @@
     </div>
 
     <script type="module">
-        import { QUESTION_IDS, ARCHETYPE_MAP, OPTION_INDICES } from './map.js';
+        import { ARCHETYPE_MAP, OPTION_INDICES } from './map.js';
         import { log } from './logger.js';
 
         // Initialize widget when DOM is ready
@@ -52,12 +52,26 @@
             // Subscribe to ready event
             JFCustomWidget.subscribe("ready", function(data) {
                 try {
-                    // Get archetype from settings
+                    // Get settings
                     const settingsStr = data.settings;
                     const settings = settingsStr ? JSON.parse(decodeURIComponent(settingsStr)) : [];
+                    
+                    // Get archetype from settings
                     const targetArchetype = settings.find(s => s.name === 'archetype')?.value || 
                                          JFCustomWidget.getWidgetSetting('archetype');
                     
+                    // Get question IDs from settings
+                    const questionIdsStr = settings.find(s => s.name === 'questionIds')?.value || 
+                                         JFCustomWidget.getWidgetSetting('questionIds');
+                    
+                    if (!questionIdsStr) {
+                        document.getElementById('errorMsg').textContent = 
+                            'Please set the questionIds parameter in widget settings (comma-separated list of question IDs)';
+                        return;
+                    }
+
+                    const questionIds = questionIdsStr.split(',').map(id => parseInt(id.trim()));
+
                     if (!targetArchetype) {
                         document.getElementById('errorMsg').textContent = 
                             'Please set the archetype parameter in widget settings (Atlas, Seer, Envoy, or Nexus)';
@@ -76,13 +90,12 @@
                             .filter(value => value === targetArchetype)
                             .length;
                         
-                        // log('info', `Count updated to ${count} for target archetype: ${targetArchetype}`);
                         document.getElementById('choiceCount').textContent = count;
                         JFCustomWidget.sendData({ valid: true, value: count.toString() });
                     }
 
-                    // Set up listeners for questions
-                    QUESTION_IDS.forEach(id => {
+                    // Set up listeners for questions using dynamic questionIds
+                    questionIds.forEach(id => {
                         OPTION_INDICES.forEach(option => {
                             const inputId = `input_${id}_${option}`;
                             JFCustomWidget.listenFromField(inputId, 'change', value => {
