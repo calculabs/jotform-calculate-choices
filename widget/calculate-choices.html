@@ -84,81 +84,28 @@
                     // Keep track of field values
                     let fieldValues = {};
 
-                    // Function to sync all field values from the form
-                    function syncFieldValues() {
-                        log('Syncing field values...');
-                        let syncCount = 0;
-                        const totalFields = questionIds.length;
-                        
-                        questionIds.forEach(id => {
-                            try {
-                                JFCustomWidget.getFieldValue(`input_${id}`, (value) => {
-                                    syncCount++;
-                                    log(`Field ${id} value:`, value);
-                                    if (value && value !== 'false') {
-                                        // Map the option index to archetype
-                                        fieldValues[`q${id}`] = ARCHETYPE_MAP[value];
-                                        log(`Updated fieldValues for q${id}:`, fieldValues[`q${id}`]);
-                                        updateCount();
-                                    }
-                                    
-                                    // If we've processed all fields, log final state
-                                    if (syncCount === totalFields) {
-                                        log('All fields processed. Final state:', {
-                                            fieldValues,
-                                            count: Object.values(fieldValues).filter(v => v === targetArchetype).length
-                                        });
-                                    }
-                                });
-                            } catch (err) {
-                                log(`Error getting value for field ${id}:`, err);
-                                syncCount++;
-                            }
-                        });
-                    }
-
                     // Function to update count
                     function updateCount() {
                         const count = Object.values(fieldValues)
                             .filter(value => value === targetArchetype)
                             .length;
                         
-                        log('Current fieldValues:', fieldValues);
-                        log('Calculated count:', count);
                         document.getElementById('choiceCount').textContent = count;
                         JFCustomWidget.sendData({ valid: true, value: count.toString() });
                     }
 
                     // Set up listeners for questions using dynamic questionIds
                     questionIds.forEach(id => {
-                        JFCustomWidget.listenFromField(`input_${id}`, 'change', value => {
-                            log(`Change event for question ${id}:`, value);
-                            if (value && value !== 'false') {
-                                // Map the option index to archetype
-                                fieldValues[`q${id}`] = ARCHETYPE_MAP[value];
-                                updateCount();
-                            }
+                        OPTION_INDICES.forEach(option => {
+                            const inputId = `input_${id}_${option}`;
+                            JFCustomWidget.listenFromField(inputId, 'change', value => {
+                                if (value && value !== 'false') {
+                                    fieldValues[`q${id}`] = ARCHETYPE_MAP[option];
+                                    updateCount();
+                                }
+                            });
                         });
                     });
-
-                    // Initial sync of values with retry
-                    let retryCount = 0;
-                    const maxRetries = 3;
-                    
-                    function attemptSync() {
-                        try {
-                            syncFieldValues();
-                        } catch (err) {
-                            log('Error during sync:', err);
-                            if (retryCount < maxRetries) {
-                                retryCount++;
-                                log(`Retrying sync (attempt ${retryCount}/${maxRetries})...`);
-                                setTimeout(attemptSync, 1000);
-                            }
-                        }
-                    }
-                    
-                    attemptSync();
 
                     // Set up frame height
                     JFCustomWidget.requestFrameResize({ height: 100 });
@@ -172,7 +119,6 @@
                     });
 
                 } catch (err) {
-                    log('Error in widget initialization:', err);
                     document.getElementById('errorMsg').textContent = 'Error initializing widget: ' + err.message;
                 }
             });
