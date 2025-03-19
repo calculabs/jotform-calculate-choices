@@ -45,15 +45,13 @@
         // Make log function available globally
         window.log = log;
 
-        // Function to send debug info to parent window
-        function sendDebugInfo(state) {
-            JFCustomWidget.sendData({
-                valid: true,
-                value: JSON.stringify({
-                    type: 'debug',
-                    state: state
-                })
-            });
+        // Function to update debug info
+        function updateDebugInfo(state) {
+            // Store debug info in a hidden input
+            const debugInput = document.getElementById('widgetDebugInfo');
+            if (debugInput) {
+                debugInput.value = JSON.stringify(state);
+            }
         }
 
         // Initialize widget when DOM is ready
@@ -103,8 +101,8 @@
                         document.getElementById('choiceCount').textContent = count;
                         JFCustomWidget.sendData({ valid: true, value: count.toString() });
 
-                        // Send debug info to parent window
-                        sendDebugInfo({
+                        // Update debug info
+                        updateDebugInfo({
                             isVisible: document.querySelector('.result-container').style.display !== 'none',
                             currentCount: count,
                             fieldValues: fieldValues,
@@ -217,5 +215,7 @@
     </div>
 
     <button class="debug-button" onclick="window.debugWidget.toggleVisibility()">Toggle Visibility</button>
+
+    <input type="hidden" id="widgetDebugInfo" />
 </body>
 </html> 
