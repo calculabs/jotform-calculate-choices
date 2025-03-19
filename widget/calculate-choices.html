@@ -133,18 +133,17 @@
 
                     // Set up listeners for questions using dynamic questionIds
                     questionIds.forEach(id => {
-                        OPTION_INDICES.forEach(option => {
-                            const inputId = `input_${id}_${option}`;
-                            try {
-                                JFCustomWidget.listenFromField(inputId, 'change', value => {
-                                    log(`Change event for ${inputId}:`, value);
-                                    if (value && value !== 'false') {
-                                        fieldValues[`q${id}`] = ARCHETYPE_MAP[option];
-                                        updateCount();
-                                    }
-                                });
-                            } catch (err) {
-                                log(`Error setting up listener for ${inputId}:`, err);
+                        // Only set up one listener per question
+                        JFCustomWidget.listenFromField(`input_${id}`, 'change', value => {
+                            log(`Change event for question ${id}:`, value);
+                            // Find which option was selected
+                            const selectedOption = OPTION_INDICES.find(option => 
+                                value === `input_${id}_${option}`
+                            );
+                            
+                            if (selectedOption) {
+                                fieldValues[`q${id}`] = ARCHETYPE_MAP[selectedOption];
+                                updateCount();
                             }
                         });
                     });
