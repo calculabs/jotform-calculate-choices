@@ -42,9 +42,19 @@
         import { ARCHETYPE_MAP, OPTION_INDICES } from './map.js';
         import { log } from './logger.js';
 
-        // Make log function and OPTION_INDICES available globally
+        // Make log function available globally
         window.log = log;
-        window.OPTION_INDICES = OPTION_INDICES;
+
+        // Function to send debug info to parent window
+        function sendDebugInfo(state) {
+            JFCustomWidget.sendData({
+                valid: true,
+                value: JSON.stringify({
+                    type: 'debug',
+                    state: state
+                })
+            });
+        }
 
         // Initialize widget when DOM is ready
         document.addEventListener("DOMContentLoaded", function() {
@@ -84,7 +94,7 @@
                     let fieldValues = {};
                     window.fieldValues = fieldValues; // Make it accessible for debugging
 
-                    // Function to update count
+                    // Function to update count and debug info
                     function updateCount() {
                         const count = Object.values(fieldValues)
                             .filter(value => value === targetArchetype)
@@ -92,6 +102,16 @@
                         
                         document.getElementById('choiceCount').textContent = count;
                         JFCustomWidget.sendData({ valid: true, value: count.toString() });
+
+                        // Send debug info to parent window
+                        sendDebugInfo({
+                            isVisible: document.querySelector('.result-container').style.display !== 'none',
+                            currentCount: count,
+                            fieldValues: fieldValues,
+                            targetArchetype: targetArchetype,
+                            questionIds: questionIds,
+                            activeListeners: {}
+                        });
                     }
 
                     // Set up listeners for questions using dynamic questionIds
@@ -102,8 +122,6 @@
                                 if (value && value !== 'false') {
                                     fieldValues[`q${id}`] = ARCHETYPE_MAP[option];
                                     updateCount();
-                                    // Log state after each change
-                                    window.debugWidget.logState();
                                 }
                             });
                         });
@@ -120,8 +138,8 @@
                         });
                     });
 
-                    // Log initial state
-                    window.debugWidget.logState();
+                    // Initial debug update
+                    updateCount();
 
                 } catch (err) {
                     document.getElementById('errorMsg').textContent = 'Error initializing widget: ' + err.message;
@@ -140,6 +158,7 @@
             padding: 15px;
             border-radius: 4px;
             background: #f9f9f9;
+            margin-bottom: 10px;
         }
         .count {
             font-size: 24px;
@@ -153,6 +172,23 @@
         .error {
             color: #e74c3c;
             font-size: 12px;
+        }
+        #debugPanel {
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 4px;
+            background: #f5f5f5;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+        #debugPanel h4 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+        }
+        #debugPanel pre {
+            margin: 5px 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
         }
         .debug-button {
             position: fixed;
@@ -173,6 +209,11 @@
         <div class="label">Archetype Counter</div>
         <div class="count" id="choiceCount">0</div>
         <div class="error" id="errorMsg"></div>
+    </div>
+
+    <div id="debugPanel">
+        <h4>Debug Info:</h4>
+        <pre>Loading...</pre>
     </div>
 
     <button class="debug-button" onclick="window.debugWidget.toggleVisibility()">Toggle Visibility</button>
