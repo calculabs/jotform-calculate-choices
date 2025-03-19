@@ -81,11 +81,21 @@
                     // Update the label
                     document.querySelector('.label').textContent = 'Total ' + targetArchetype + ' responses:';
 
-                    // Initial sync using getFieldsValueById
-                    JFCustomWidget.getFieldsValueById(questionIds.map(id => id.toString()), function(data) {
+                    // Initial sync using getFieldsValueByName
+                    const fieldNames = questionIds.map(id => `q${id}`);
+                    JFCustomWidget.getFieldsValueByName(fieldNames, function(data) {
                         log('Initial field values:', data);
                         questionIds.forEach(id => {
-                            const value = data[`input_${id}`];
+                            const value = data[`q${id}`];
+                            processFieldValue(id, value);
+                        });
+                    });
+
+                    // Subscribe to formData events for overall form changes
+                    JFCustomWidget.subscribe("formData", function(data) {
+                        log('Form data changed:', data);
+                        questionIds.forEach(id => {
+                            const value = data[`q${id}`];
                             processFieldValue(id, value);
                         });
                     });
