@@ -52,6 +52,9 @@
             // Subscribe to ready event
             JFCustomWidget.subscribe("ready", function(data) {
                 try {
+                    // Force initialization
+                    JFCustomWidget.initialize();
+
                     // Get settings
                     const settingsStr = data.settings;
                     const settings = settingsStr ? JSON.parse(decodeURIComponent(settingsStr)) : [];
@@ -87,17 +90,34 @@
                     // Function to sync all field values from the form
                     function syncFieldValues() {
                         log('Syncing field values...');
+                        let syncCount = 0;
+                        const totalFields = questionIds.length * OPTION_INDICES.length;
+                        
                         questionIds.forEach(id => {
                             OPTION_INDICES.forEach(option => {
                                 const inputId = `input_${id}_${option}`;
-                                JFCustomWidget.getFieldValue(inputId, (value) => {
-                                    console.log(`Field ${inputId} value:`, value);
-                                    if (value && value !== 'false') {
-                                        fieldValues[`q${id}`] = ARCHETYPE_MAP[option];
-                                        console.log(`Updated fieldValues for q${id}:`, fieldValues[`q${id}`]);
-                                        updateCount();
-                                    }
-                                });
+                                try {
+                                    JFCustomWidget.getFieldValue(inputId, (value) => {
+                                        syncCount++;
+                                        console.log(`Field ${inputId} value:`, value);
+                                        if (value && value !== 'false') {
+                                            fieldValues[`q${id}`] = ARCHETYPE_MAP[option];
+                                            console.log(`Updated fieldValues for q${id}:`, fieldValues[`q${id}`]);
+                                            updateCount();
+                                        }
+                                        
+                                        // If we've processed all fields, log final state
+                                        if (syncCount === totalFields) {
+                                            console.log('All fields processed. Final state:', {
+                                                fieldValues,
+                                                count: Object.values(fieldValues).filter(v => v === targetArchetype).length
+                                            });
+                                        }
+                                    });
+                                } catch (err) {
+                                    console.error(`Error getting value for field ${inputId}:`, err);
+                                    syncCount++;
+                                }
                             });
                         });
                     }
@@ -118,17 +138,38 @@
                     questionIds.forEach(id => {
                         OPTION_INDICES.forEach(option => {
                             const inputId = `input_${id}_${option}`;
-                            JFCustomWidget.listenFromField(inputId, 'change', value => {
-                                if (value && value !== 'false') {
-                                    fieldValues[`q${id}`] = ARCHETYPE_MAP[option];
-                                    updateCount();
-                                }
-                            });
+                            try {
+                                JFCustomWidget.listenFromField(inputId, 'change', value => {
+                                    console.log(`Change event for ${inputId}:`, value);
+                                    if (value && value !== 'false') {
+                                        fieldValues[`q${id}`] = ARCHETYPE_MAP[option];
+                                        updateCount();
+                                    }
+                                });
+                            } catch (err) {
+                                console.error(`Error setting up listener for ${inputId}:`, err);
+                            }
                         });
                     });
 
-                    // Initial sync of values
-                    syncFieldValues();
+                    // Initial sync of values with retry
+                    let retryCount = 0;
+                    const maxRetries = 3;
+                    
+                    function attemptSync() {
+                        try {
+                            syncFieldValues();
+                        } catch (err) {
+                            console.error('Error during sync:', err);
+                            if (retryCount < maxRetries) {
+                                retryCount++;
+                                console.log(`Retrying sync (attempt ${retryCount}/${maxRetries})...`);
+                                setTimeout(attemptSync, 1000);
+                            }
+                        }
+                    }
+                    
+                    attemptSync();
 
                     // Set up frame height
                     JFCustomWidget.requestFrameResize({ height: 100 });
@@ -142,6 +183,7 @@
                     });
 
                 } catch (err) {
+                    console.error('Error in widget initialization:', err);
                     document.getElementById('errorMsg').textContent = 'Error initializing widget: ' + err.message;
                 }
             });
