@@ -95,22 +95,35 @@
                         JFCustomWidget.sendData({ valid: true, value: count.toString() });
                     }
 
+                    // Function to process a field value
+                    function processFieldValue(id, value) {
+                        if (value) {
+                            // Find which option was selected
+                            const selectedOption = OPTION_INDICES.find(option => 
+                                value === `input_${id}_${option}`
+                            );
+                            if (selectedOption) {
+                                fieldValues[`q${id}`] = ARCHETYPE_MAP[selectedOption];
+                                updateCount();
+                            }
+                        }
+                    }
+
+                    // Initial sync of all field values using getFieldsValueById
+                    JFCustomWidget.getFieldsValueById(questionIds.map(id => id.toString()), function(data) {
+                        log('Initial field values:', data);
+                        questionIds.forEach(id => {
+                            const value = data[`input_${id}`];
+                            processFieldValue(id, value);
+                        });
+                    });
+
                     // Subscribe to formData events to catch all field changes
                     JFCustomWidget.subscribe("formData", function(data) {
                         log('Form data changed:', data);
-                        // Check each question's value
                         questionIds.forEach(id => {
                             const value = data[`input_${id}`];
-                            if (value) {
-                                // Find which option was selected
-                                const selectedOption = OPTION_INDICES.find(option => 
-                                    value === `input_${id}_${option}`
-                                );
-                                if (selectedOption) {
-                                    fieldValues[`q${id}`] = ARCHETYPE_MAP[selectedOption];
-                                    updateCount();
-                                }
-                            }
+                            processFieldValue(id, value);
                         });
                     });
 
