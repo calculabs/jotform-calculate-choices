@@ -88,34 +88,32 @@
                     function syncFieldValues() {
                         log('Syncing field values...');
                         let syncCount = 0;
-                        const totalFields = questionIds.length * OPTION_INDICES.length;
+                        const totalFields = questionIds.length;
                         
                         questionIds.forEach(id => {
-                            OPTION_INDICES.forEach(option => {
-                                const inputId = `input_${id}_${option}`;
-                                try {
-                                    JFCustomWidget.getFieldValue(inputId, (value) => {
-                                        syncCount++;
-                                        log(`Field ${inputId} value:`, value);
-                                        if (value && value !== 'false') {
-                                            fieldValues[`q${id}`] = ARCHETYPE_MAP[option];
-                                            log(`Updated fieldValues for q${id}:`, fieldValues[`q${id}`]);
-                                            updateCount();
-                                        }
-                                        
-                                        // If we've processed all fields, log final state
-                                        if (syncCount === totalFields) {
-                                            log('All fields processed. Final state:', {
-                                                fieldValues,
-                                                count: Object.values(fieldValues).filter(v => v === targetArchetype).length
-                                            });
-                                        }
-                                    });
-                                } catch (err) {
-                                    log(`Error getting value for field ${inputId}:`, err);
+                            try {
+                                JFCustomWidget.getFieldValue(`input_${id}`, (value) => {
                                     syncCount++;
-                                }
-                            });
+                                    log(`Field ${id} value:`, value);
+                                    if (value && value !== 'false') {
+                                        // Map the option index to archetype
+                                        fieldValues[`q${id}`] = ARCHETYPE_MAP[value];
+                                        log(`Updated fieldValues for q${id}:`, fieldValues[`q${id}`]);
+                                        updateCount();
+                                    }
+                                    
+                                    // If we've processed all fields, log final state
+                                    if (syncCount === totalFields) {
+                                        log('All fields processed. Final state:', {
+                                            fieldValues,
+                                            count: Object.values(fieldValues).filter(v => v === targetArchetype).length
+                                        });
+                                    }
+                                });
+                            } catch (err) {
+                                log(`Error getting value for field ${id}:`, err);
+                                syncCount++;
+                            }
                         });
                     }
 
@@ -133,16 +131,11 @@
 
                     // Set up listeners for questions using dynamic questionIds
                     questionIds.forEach(id => {
-                        // Only set up one listener per question
                         JFCustomWidget.listenFromField(`input_${id}`, 'change', value => {
                             log(`Change event for question ${id}:`, value);
-                            // Find which option was selected
-                            const selectedOption = OPTION_INDICES.find(option => 
-                                value === `input_${id}_${option}`
-                            );
-                            
-                            if (selectedOption) {
-                                fieldValues[`q${id}`] = ARCHETYPE_MAP[selectedOption];
+                            if (value && value !== 'false') {
+                                // Map the option index to archetype
+                                fieldValues[`q${id}`] = ARCHETYPE_MAP[value];
                                 updateCount();
                             }
                         });
