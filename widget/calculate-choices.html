@@ -47,69 +47,41 @@
         import { ARCHETYPE_MAP, OPTION_INDICES } from './map.js';
         import { log } from './logger.js';
 
-        // Initialize widget when DOM is ready
-        document.addEventListener("DOMContentLoaded", function() {
-            // Subscribe to ready event
-            JFCustomWidget.subscribe("ready", function(data) {
+        function ArchetypeWidget() {
+            let fieldValues = {};
+            let targetArchetype = null;
+            let questionIds = [];
+
+            // exposed functions
+            this.init = init;
+            this.getData = getData;
+            
+            function init(data) {
                 try {
                     // Get settings
                     const settingsStr = data.settings;
                     const settings = settingsStr ? JSON.parse(decodeURIComponent(settingsStr)) : [];
                     
                     // Get archetype from settings
-                    const targetArchetype = settings.find(s => s.name === 'archetype')?.value || 
-                                         JFCustomWidget.getWidgetSetting('archetype');
+                    targetArchetype = settings.find(s => s.name === 'archetype')?.value || 
+                                   JFCustomWidget.getWidgetSetting('archetype');
                     
                     // Get question IDs from settings
                     const questionIdsStr = settings.find(s => s.name === 'questionIds')?.value || 
                                          JFCustomWidget.getWidgetSetting('questionIds');
                     
-                    if (!questionIdsStr) {
+                    if (!questionIdsStr || !targetArchetype) {
                         document.getElementById('errorMsg').textContent = 
-                            'Please set the questionIds parameter in widget settings (comma-separated list of question IDs)';
+                            'Please set both archetype and questionIds parameters in widget settings';
                         return;
                     }
 
-                    const questionIds = questionIdsStr.split(',').map(id => parseInt(id.trim()));
-
-                    if (!targetArchetype) {
-                        document.getElementById('errorMsg').textContent = 
-                            'Please set the archetype parameter in widget settings (Atlas, Seer, Envoy, or Nexus)';
-                        return;
-                    }
+                    questionIds = questionIdsStr.split(',').map(id => parseInt(id.trim()));
                     
                     // Update the label
                     document.querySelector('.label').textContent = 'Total ' + targetArchetype + ' responses:';
 
-                    // Keep track of field values
-                    let fieldValues = {};
-
-                    // Function to update count
-                    function updateCount() {
-                        const count = Object.values(fieldValues)
-                            .filter(value => value === targetArchetype)
-                            .length;
-                        
-                        log('Current count:', count);
-                        document.getElementById('choiceCount').textContent = count;
-                        JFCustomWidget.sendData({ valid: true, value: count.toString() });
-                    }
-
-                    // Function to process a field value
-                    function processFieldValue(id, value) {
-                        if (value) {
-                            // Find which option was selected
-                            const selectedOption = OPTION_INDICES.find(option => 
-                                value === `input_${id}_${option}`
-                            );
-                            if (selectedOption) {
-                                fieldValues[`q${id}`] = ARCHETYPE_MAP[selectedOption];
-                                updateCount();
-                            }
-                        }
-                    }
-
-                    // Initial sync of all field values using getFieldsValueById
+                    // Initial sync using getFieldsValueById
                     JFCustomWidget.getFieldsValueById(questionIds.map(id => id.toString()), function(data) {
                         log('Initial field values:', data);
                         questionIds.forEach(id => {
@@ -118,16 +90,7 @@
                         });
                     });
 
-                    // Subscribe to formData events to catch all field changes
-                    JFCustomWidget.subscribe("formData", function(data) {
-                        log('Form data changed:', data);
-                        questionIds.forEach(id => {
-                            const value = data[`input_${id}`];
-                            processFieldValue(id, value);
-                        });
-                    });
-
-                    // Set up listeners for questions using dynamic questionIds
+                    // Set up listeners for questions
                     questionIds.forEach(id => {
                         OPTION_INDICES.forEach(option => {
                             const inputId = `input_${id}_${option}`;
@@ -143,17 +106,48 @@
                     // Set up frame height
                     JFCustomWidget.requestFrameResize({ height: 100 });
 
-                    // Handle form submission
-                    JFCustomWidget.subscribe("submit", function() {
-                        JFCustomWidget.sendSubmit({
-                            valid: true,
-                            value: document.getElementById('choiceCount').textContent
-                        });
-                    });
-
                 } catch (err) {
                     document.getElementById('errorMsg').textContent = 'Error initializing widget: ' + err.message;
                 }
+            }
+
+            function getData() {
+                const count = Object.values(fieldValues)
+                    .filter(value => value === targetArchetype)
+                    .length;
+                return {
+                    valid: true,
+                    value: count.toString()
+                };
+            }
+
+            function processFieldValue(id, value) {
+                if (value) {
+                    const selectedOption = OPTION_INDICES.find(option => 
+                        value === `input_${id}_${option}`
+                    );
+                    if (selectedOption) {
+                        fieldValues[`q${id}`] = ARCHETYPE_MAP[selectedOption];
+                        updateCount();
+                    }
+                }
+            }
+
+            function updateCount() {
+                const count = getData().value;
+                log('Current count:', count);
+                document.getElementById('choiceCount').textContent = count;
+                JFCustomWidget.sendData({ valid: true, value: count });
+            }
+        }
+
+        // Subscribe to ready event
+        JFCustomWidget.subscribe("ready", function(data) {
+            var widget = new ArchetypeWidget();
+            widget.init(data);
+
+            JFCustomWidget.subscribe("submit", function() {
+                JFCustomWidget.sendSubmit(widget.getData());
             });
         });
     </script>
