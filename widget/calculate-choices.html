@@ -52,9 +52,6 @@
             // Subscribe to ready event
             JFCustomWidget.subscribe("ready", function(data) {
                 try {
-                    // Force initialization
-                    JFCustomWidget.initialize();
-
                     // Get settings
                     const settingsStr = data.settings;
                     const settings = settingsStr ? JSON.parse(decodeURIComponent(settingsStr)) : [];
@@ -99,23 +96,23 @@
                                 try {
                                     JFCustomWidget.getFieldValue(inputId, (value) => {
                                         syncCount++;
-                                        console.log(`Field ${inputId} value:`, value);
+                                        log(`Field ${inputId} value:`, value);
                                         if (value && value !== 'false') {
                                             fieldValues[`q${id}`] = ARCHETYPE_MAP[option];
-                                            console.log(`Updated fieldValues for q${id}:`, fieldValues[`q${id}`]);
+                                            log(`Updated fieldValues for q${id}:`, fieldValues[`q${id}`]);
                                             updateCount();
                                         }
                                         
                                         // If we've processed all fields, log final state
                                         if (syncCount === totalFields) {
-                                            console.log('All fields processed. Final state:', {
+                                            log('All fields processed. Final state:', {
                                                 fieldValues,
                                                 count: Object.values(fieldValues).filter(v => v === targetArchetype).length
                                             });
                                         }
                                     });
                                 } catch (err) {
-                                    console.error(`Error getting value for field ${inputId}:`, err);
+                                    log(`Error getting value for field ${inputId}:`, err);
                                     syncCount++;
                                 }
                             });
@@ -128,8 +125,8 @@
                             .filter(value => value === targetArchetype)
                             .length;
                         
-                        console.log('Current fieldValues:', fieldValues);
-                        console.log('Calculated count:', count);
+                        log('Current fieldValues:', fieldValues);
+                        log('Calculated count:', count);
                         document.getElementById('choiceCount').textContent = count;
                         JFCustomWidget.sendData({ valid: true, value: count.toString() });
                     }
@@ -140,14 +137,14 @@
                             const inputId = `input_${id}_${option}`;
                             try {
                                 JFCustomWidget.listenFromField(inputId, 'change', value => {
-                                    console.log(`Change event for ${inputId}:`, value);
+                                    log(`Change event for ${inputId}:`, value);
                                     if (value && value !== 'false') {
                                         fieldValues[`q${id}`] = ARCHETYPE_MAP[option];
                                         updateCount();
                                     }
                                 });
                             } catch (err) {
-                                console.error(`Error setting up listener for ${inputId}:`, err);
+                                log(`Error setting up listener for ${inputId}:`, err);
                             }
                         });
                     });
@@ -160,10 +157,10 @@
                         try {
                             syncFieldValues();
                         } catch (err) {
-                            console.error('Error during sync:', err);
+                            log('Error during sync:', err);
                             if (retryCount < maxRetries) {
                                 retryCount++;
-                                console.log(`Retrying sync (attempt ${retryCount}/${maxRetries})...`);
+                                log(`Retrying sync (attempt ${retryCount}/${maxRetries})...`);
                                 setTimeout(attemptSync, 1000);
                             }
                         }
@@ -183,7 +180,7 @@
                     });
 
                 } catch (err) {
-                    console.error('Error in widget initialization:', err);
+                    log('Error in widget initialization:', err);
                     document.getElementById('errorMsg').textContent = 'Error initializing widget: ' + err.message;
                 }
             });
