@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <script src="https://js.jotform.com/JotFormCustomWidget.min.js"></script>
+    <script src="https://cdn.jotfor.ms/s/umd/latest/for-custom-widgets.js"></script>
     <script type="module">
         import { ARCHETYPE_MAP, OPTION_INDICES } from './map.js';
         import { log } from './logger.js';
@@ -11,62 +11,28 @@
 
         // Add debugging functions
         window.debugWidget = {
-            runTests: function() {
-                console.log('=== Starting Field Tests ===');
-                
-                // 1. Check if we can get field values directly
-                const testId = 7; // Let's test with question 7
-                console.log('\n1. Testing direct field value:');
-                console.log('Direct value:', JFCustomWidget.getFieldValue(`input_${testId}`));
-                console.log('Field name value:', JFCustomWidget.getFieldValue(`q${testId}`));
-
-                // 2. Check if we can get all field values
-                console.log('\n2. Testing getFieldsValueByName:');
-                JFCustomWidget.getFieldsValueByName(['q7'], function(data) {
-                    console.log('Field values:', data);
-                });
-
-                // 3. Check if we can get field values by ID
-                console.log('\n3. Testing getFieldsValueById:');
-                JFCustomWidget.getFieldsValueById(['7'], function(data) {
-                    console.log('Field values by ID:', data);
-                });
-
-                // 4. Check if we can listen to field changes
-                console.log('\n4. Testing field listener:');
-                JFCustomWidget.listenFromField(`input_${testId}_0`, 'change', function(value) {
-                    console.log('Field changed:', value);
-                });
-
-                // 5. Check if we can subscribe to formData events
-                console.log('\n5. Testing formData subscription:');
-                JFCustomWidget.subscribe("formData", function(data) {
-                    console.log('Form data changed:', data);
-                });
-            },
-
-            toggleVisibility: function() {
-                const container = document.querySelector('.result-container');
-                if (container) {
-                    const isHidden = container.style.display === 'none';
-                    container.style.display = isHidden ? 'block' : 'none';
-                    console.log(`Widget is now ${isHidden ? 'visible' : 'hidden'}`);
-                    this.runTests();
-                }
-            },
-
             logState: function() {
-                console.log('=== Widget State ===');
-                console.log('Is widget visible:', document.querySelector('.result-container').style.display !== 'none');
-                console.log('Current count:', document.getElementById('choiceCount').textContent);
-                console.log('Field values:', window.fieldValues || {});
+                const state = {
+                    isVisible: document.querySelector('.result-container').style.display !== 'none',
+                    currentCount: document.getElementById('choiceCount').textContent,
+                    fieldValues: window.fieldValues || {},
+                    activeListeners: {}
+                };
                 
                 // Log all active listeners
-                console.log('\nActive listeners:');
                 const testId = 7;
                 OPTION_INDICES.forEach(option => {
                     const inputId = `input_${testId}_${option}`;
-                    console.log(`Listener for ${inputId}:`, JFCustomWidget.getFieldValue(inputId));
+                    state.activeListeners[inputId] = JFCustomWidget.getFieldValue(inputId);
+                });
+
+                // Send debug info to parent window
+                JFCustomWidget.sendData({
+                    valid: true,
+                    value: JSON.stringify({
+                        type: 'debug',
+                        state: state
+                    })
                 });
             }
         };
@@ -179,6 +145,8 @@
                                 if (value && value !== 'false') {
                                     fieldValues[`q${id}`] = ARCHETYPE_MAP[option];
                                     updateCount();
+                                    // Log state after each change
+                                    window.debugWidget.logState();
                                 }
                             });
                         });
@@ -195,8 +163,8 @@
                         });
                     });
 
-                    // Run initial tests
-                    window.debugWidget.runTests();
+                    // Log initial state
+                    window.debugWidget.logState();
 
                 } catch (err) {
                     document.getElementById('errorMsg').textContent = 'Error initializing widget: ' + err.message;
