@@ -49,10 +49,6 @@
 
         // Initialize widget when DOM is ready
         document.addEventListener("DOMContentLoaded", function() {
-            let fieldValues = {};
-            let targetArchetype = '';
-            let questionIds = [];
-
             // Subscribe to ready event
             JFCustomWidget.subscribe("ready", function(data) {
                 try {
@@ -61,8 +57,8 @@
                     const settings = settingsStr ? JSON.parse(decodeURIComponent(settingsStr)) : [];
                     
                     // Get archetype from settings
-                    targetArchetype = settings.find(s => s.name === 'archetype')?.value || 
-                                    JFCustomWidget.getWidgetSetting('archetype');
+                    const targetArchetype = settings.find(s => s.name === 'archetype')?.value || 
+                                         JFCustomWidget.getWidgetSetting('archetype');
                     
                     // Get question IDs from settings
                     const questionIdsStr = settings.find(s => s.name === 'questionIds')?.value || 
@@ -74,7 +70,7 @@
                         return;
                     }
 
-                    questionIds = questionIdsStr.split(',').map(id => parseInt(id.trim()));
+                    const questionIds = questionIdsStr.split(',').map(id => parseInt(id.trim()));
 
                     if (!targetArchetype) {
                         document.getElementById('errorMsg').textContent = 
@@ -84,6 +80,19 @@
                     
                     // Update the label
                     document.querySelector('.label').textContent = 'Total ' + targetArchetype + ' responses:';
+
+                    // Keep track of field values
+                    let fieldValues = {};
+
+                    // Function to update count
+                    function updateCount() {
+                        const count = Object.values(fieldValues)
+                            .filter(value => value === targetArchetype)
+                            .length;
+                        
+                        document.getElementById('choiceCount').textContent = count;
+                        JFCustomWidget.sendData({ valid: true, value: count.toString() });
+                    }
 
                     // Set up listeners for questions using dynamic questionIds
                     questionIds.forEach(id => {
@@ -101,49 +110,17 @@
                     // Set up frame height
                     JFCustomWidget.requestFrameResize({ height: 100 });
 
-                    // Send initial state
-                    sendState('Widget initialized');
+                    // Handle form submission
+                    JFCustomWidget.subscribe("submit", function() {
+                        JFCustomWidget.sendSubmit({
+                            valid: true,
+                            value: document.getElementById('choiceCount').textContent
+                        });
+                    });
 
                 } catch (err) {
                     document.getElementById('errorMsg').textContent = 'Error initializing widget: ' + err.message;
                 }
-            });
-
-            // Function to update count
-            function updateCount() {
-                const count = Object.values(fieldValues)
-                    .filter(value => value === targetArchetype)
-                    .length;
-                
-                document.getElementById('choiceCount').textContent = count;
-                sendState(`Count updated to ${count}`);
-            }
-
-            // Function to send state to JotForm
-            function sendState(message) {
-                const state = {
-                    type: 'debug',
-                    state: {
-                        message: message,
-                        isVisible: true,
-                        currentCount: document.getElementById('choiceCount').textContent,
-                        fieldValues: fieldValues,
-                        targetArchetype: targetArchetype,
-                        questionIds: questionIds,
-                        timestamp: new Date().toISOString()
-                    }
-                };
-
-                JFCustomWidget.sendData(state);
-            }
-
-            // Handle form submission
-            JFCustomWidget.subscribe("submit", function() {
-                const count = document.getElementById('choiceCount').textContent;
-                JFCustomWidget.sendSubmit({
-                    valid: true,
-                    value: count
-                });
             });
         });
     </script>
