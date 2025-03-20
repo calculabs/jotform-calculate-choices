@@ -33,6 +33,27 @@
                     this.fieldValues = {};
                     window.fieldValues = this.fieldValues; // Make it accessible for debugging
 
+                    // Ensure the widget has the calculatedOperand class
+                    const container = document.querySelector('.result-container');
+                    if (container) {
+                        container.classList.add('calculatedOperand');
+                    }
+
+                    // Tell JotForm to add calculatedOperand class to our parent li
+                    JFCustomWidget.sendData({
+                        valid: true,
+                        value: 'add-calculated-class',
+                        type: 'customEvent',
+                        callback: function() {
+                            // After class is added, ensure our widget is treated as a calculated field
+                            JFCustomWidget.sendData({ 
+                                valid: true, 
+                                value: '0',
+                                calculated: true
+                            });
+                        }
+                    });
+
                     // Set up listeners
                     this.setupListeners();
 
