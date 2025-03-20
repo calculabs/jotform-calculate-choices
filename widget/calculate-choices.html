@@ -91,7 +91,13 @@
                             .length;
                         
                         document.getElementById('choiceCount').textContent = count;
-                        JFCustomWidget.sendData({ valid: true, value: count.toString() });
+
+                        // Send value in format expected by JotForm's calculation system
+                        const value = count.toString();
+                        JFCustomWidget.sendData({ valid: true, value });
+
+                        // Also send the submit data to ensure calculation is registered
+                        JFCustomWidget.sendSubmit({ valid: true, value });
                     }
 
                     // Set up listeners for questions using dynamic questionIds
@@ -110,13 +116,8 @@
                     // Set up frame height
                     JFCustomWidget.requestFrameResize({ height: 100 });
 
-                    // Handle form submission
-                    JFCustomWidget.subscribe("submit", function() {
-                        JFCustomWidget.sendSubmit({
-                            valid: true,
-                            value: document.getElementById('choiceCount').textContent
-                        });
-                    });
+                    // Initial count update to register with calculation system
+                    updateCount();
 
                 } catch (err) {
                     document.getElementById('errorMsg').textContent = 'Error initializing widget: ' + err.message;
