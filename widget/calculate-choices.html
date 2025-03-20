@@ -3,147 +3,109 @@
 <head>
     <script src="https://cdn.jotfor.ms/s/umd/latest/for-custom-widgets.js"></script>
     <script>
-        // Define debugWidget in global scope
-        window.debugWidget = {
-            logState: function() {
-                const state = {
-                    isVisible: document.querySelector('.result-container').style.display !== 'none',
-                    currentCount: document.getElementById('choiceCount').textContent,
-                    fieldValues: window.fieldValues || {},
-                    activeListeners: {}
-                };
-                
-                // Log all active listeners
-                const testId = 7;
-                window.OPTION_INDICES.forEach(option => {
-                    const inputId = `input_${testId}_${option}`;
-                    state.activeListeners[inputId] = JFCustomWidget.getFieldValue(inputId);
-                });
-
-                // Send debug info to parent window using JotForm's messaging system
-                JFCustomWidget.sendData({
-                    valid: true,
-                    value: JSON.stringify({
-                        type: 'debug',
-                        state: state
-                    })
-                });
-
-                // Also log to console for direct debugging
-                console.log('=== Widget State ===');
-                console.log('Is widget visible:', state.isVisible);
-                console.log('Current count:', state.currentCount);
-                console.log('Field values:', state.fieldValues);
-                console.log('Active listeners:', state.activeListeners);
-            }
-        };
-    </script>
-    <script type="module">
-        import { ARCHETYPE_MAP, OPTION_INDICES } from './map.js';
-        import { log } from './logger.js';
-
-        // Make log function available globally
-        window.log = log;
-
-        // Function to update debug info
-        function updateDebugInfo(state) {
-            // Store debug info in a hidden input
-            const debugInput = document.getElementById('widgetDebugInfo');
-            if (debugInput) {
-                debugInput.value = JSON.stringify(state);
-            }
-        }
-
-        // Initialize widget when DOM is ready
-        document.addEventListener("DOMContentLoaded", function() {
-            // Subscribe to ready event
-            JFCustomWidget.subscribe("ready", function(data) {
-                try {
-                    // Get settings
-                    const settingsStr = data.settings;
-                    const settings = settingsStr ? JSON.parse(decodeURIComponent(settingsStr)) : [];
-                    
-                    // Get archetype from settings
-                    const targetArchetype = settings.find(s => s.name === 'archetype')?.value || 
+        JFCustomWidgetUtils.domReady(function() {
+            class ArchetypeCounter {
+                constructor(data) {
+                    this.settings = data.settings ? JSON.parse(decodeURIComponent(data.settings)) : [];
+                    this.targetArchetype = this.settings.find(s => s.name === 'archetype')?.value || 
                                          JFCustomWidget.getWidgetSetting('archetype');
+                    this.questionIdsStr = this.settings.find(s => s.name === 'questionIds')?.value || 
+                                        JFCustomWidget.getWidgetSetting('questionIds');
                     
-                    // Get question IDs from settings
-                    const questionIdsStr = settings.find(s => s.name === 'questionIds')?.value || 
-                                         JFCustomWidget.getWidgetSetting('questionIds');
-                    
-                    if (!questionIdsStr) {
+                    if (!this.questionIdsStr) {
                         document.getElementById('errorMsg').textContent = 
                             'Please set the questionIds parameter in widget settings (comma-separated list of question IDs)';
                         return;
                     }
 
-                    const questionIds = questionIdsStr.split(',').map(id => parseInt(id.trim()));
+                    this.questionIds = this.questionIdsStr.split(',').map(id => parseInt(id.trim()));
 
-                    if (!targetArchetype) {
+                    if (!this.targetArchetype) {
                         document.getElementById('errorMsg').textContent = 
                             'Please set the archetype parameter in widget settings (Atlas, Seer, Envoy, or Nexus)';
                         return;
                     }
-                    
+
                     // Update the label
-                    document.querySelector('.label').textContent = 'Total ' + targetArchetype + ' responses:';
+                    document.querySelector('.label').textContent = 'Total ' + this.targetArchetype + ' responses:';
 
-                    // Keep track of field values
-                    let fieldValues = {};
-                    window.fieldValues = fieldValues; // Make it accessible for debugging
+                    // Initialize state
+                    this.fieldValues = {};
+                    window.fieldValues = this.fieldValues; // Make it accessible for debugging
 
-                    // Function to update count and debug info
-                    function updateCount() {
-                        const count = Object.values(fieldValues)
-                            .filter(value => value === targetArchetype)
-                            .length;
-                        
-                        document.getElementById('choiceCount').textContent = count;
-                        JFCustomWidget.sendData({ valid: true, value: count.toString() });
+                    // Set up listeners
+                    this.setupListeners();
 
-                        // Update debug info
-                        updateDebugInfo({
-                            isVisible: document.querySelector('.result-container').style.display !== 'none',
-                            currentCount: count,
-                            fieldValues: fieldValues,
-                            targetArchetype: targetArchetype,
-                            questionIds: questionIds,
-                            activeListeners: {}
-                        });
-                    }
+                    // Set up frame height
+                    JFCustomWidget.requestFrameResize({ height: 100 });
 
-                    // Set up listeners for questions using dynamic questionIds
-                    questionIds.forEach(id => {
-                        OPTION_INDICES.forEach(option => {
+                    // Initial update
+                    this.updateCount();
+                }
+
+                setupListeners() {
+                    // Set up listeners for questions
+                    this.questionIds.forEach(id => {
+                        window.OPTION_INDICES.forEach(option => {
                             const inputId = `input_${id}_${option}`;
                             JFCustomWidget.listenFromField(inputId, 'change', value => {
                                 if (value && value !== 'false') {
-                                    fieldValues[`q${id}`] = ARCHETYPE_MAP[option];
-                                    updateCount();
+                                    this.fieldValues[`q${id}`] = window.ARCHETYPE_MAP[option];
+                                    this.updateCount();
                                 }
                             });
                         });
                     });
 
-                    // Set up frame height
-                    JFCustomWidget.requestFrameResize({ height: 100 });
-
                     // Handle form submission
-                    JFCustomWidget.subscribe("submit", function() {
+                    JFCustomWidget.subscribe("submit", () => {
                         JFCustomWidget.sendSubmit({
                             valid: true,
                             value: document.getElementById('choiceCount').textContent
                         });
                     });
+                }
 
-                    // Initial debug update
-                    updateCount();
+                updateCount() {
+                    const count = Object.values(this.fieldValues)
+                        .filter(value => value === this.targetArchetype)
+                        .length;
+                    
+                    document.getElementById('choiceCount').textContent = count;
+                    JFCustomWidget.sendData({ valid: true, value: count.toString() });
 
+                    // Update debug panel
+                    const debugPanel = document.getElementById('debugPanel');
+                    if (debugPanel) {
+                        debugPanel.innerHTML = `
+                            <h4>Debug Info:</h4>
+                            <pre>Field Values: ${JSON.stringify(this.fieldValues, null, 2)}</pre>
+                            <pre>Current Count: ${count}</pre>
+                            <pre>Target Archetype: ${this.targetArchetype}</pre>
+                            <pre>Question IDs: ${this.questionIds.join(', ')}</pre>
+                        `;
+                    }
+                }
+            }
+
+            // Initialize widget when ready
+            JFCustomWidget.subscribe("ready", function(data) {
+                try {
+                    window.widget = new ArchetypeCounter(data);
                 } catch (err) {
                     document.getElementById('errorMsg').textContent = 'Error initializing widget: ' + err.message;
                 }
             });
         });
+    </script>
+    <script type="module">
+        import { ARCHETYPE_MAP, OPTION_INDICES } from './map.js';
+        import { log } from './logger.js';
+
+        // Make necessary objects available globally
+        window.ARCHETYPE_MAP = ARCHETYPE_MAP;
+        window.OPTION_INDICES = OPTION_INDICES;
+        window.log = log;
     </script>
     <style>
         body {
@@ -188,18 +150,6 @@
             white-space: pre-wrap;
             word-wrap: break-word;
         }
-        .debug-button {
-            position: fixed;
-            bottom: 10px;
-            right: 10px;
-            z-index: 1000;
-            padding: 5px 10px;
-            background: #2c3e50;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
     </style>
 </head>
 <body>
@@ -213,9 +163,5 @@
         <h4>Debug Info:</h4>
         <pre>Loading...</pre>
     </div>
-
-    <button class="debug-button" onclick="window.debugWidget.toggleVisibility()">Toggle Visibility</button>
-
-    <input type="hidden" id="widgetDebugInfo" />
 </body>
 </html> 
