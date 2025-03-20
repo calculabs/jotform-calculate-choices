@@ -84,6 +84,13 @@
                         calculated: true // Mark this as a calculated value
                     });
 
+                    // Also send the value in the format JotForm expects for calculated fields
+                    JFCustomWidget.sendSubmit({
+                        valid: true,
+                        value: count.toString(),
+                        calculated: true
+                    });
+
                     // Update debug panel
                     const debugPanel = document.getElementById('debugPanel');
                     if (debugPanel) {
