@@ -33,25 +33,13 @@
                     this.fieldValues = {};
                     window.fieldValues = this.fieldValues; // Make it accessible for debugging
 
-                    // Ensure the widget has the calculatedOperand class
-                    const container = document.querySelector('.result-container');
-                    if (container) {
-                        container.classList.add('calculatedOperand');
-                    }
-
-                    // Tell JotForm to add calculatedOperand class to our parent li
-                    JFCustomWidget.sendData({
-                        valid: true,
-                        value: 'add-calculated-class',
-                        type: 'customEvent',
-                        callback: function() {
-                            // After class is added, ensure our widget is treated as a calculated field
-                            JFCustomWidget.sendData({ 
-                                valid: true, 
-                                value: '0',
-                                calculated: true
-                            });
-                        }
+                    // Signal to JotForm that this is a calculation widget
+                    JFCustomWidget.subscribe("ready", () => {
+                        JFCustomWidget.sendData({
+                            isCalculated: true,
+                            valid: true,
+                            value: '0'
+                        });
                     });
 
                     // Set up listeners
@@ -98,18 +86,18 @@
                     
                     document.getElementById('choiceCount').textContent = count;
                     
-                    // Send data to JotForm as a calculated value
-                    JFCustomWidget.sendData({ 
-                        valid: true, 
-                        value: count.toString(),
-                        calculated: true // Mark this as a calculated value
-                    });
-
-                    // Also send the value in the format JotForm expects for calculated fields
-                    JFCustomWidget.sendSubmit({
-                        valid: true,
-                        value: count.toString(),
-                        calculated: true
+                    // Send data in the exact format used by the working widget
+                    JFCustomWidget.sendData({
+                        type: 'debug',
+                        state: {
+                            message: `Count updated to ${count}`,
+                            isVisible: document.querySelector('.result-container').style.display !== 'none',
+                            currentCount: count.toString(),
+                            fieldValues: this.fieldValues,
+                            targetArchetype: this.targetArchetype,
+                            questionIds: this.questionIds,
+                            timestamp: new Date().toISOString()
+                        }
                     });
 
                     // Update debug panel
